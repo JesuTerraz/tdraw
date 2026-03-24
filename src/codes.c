@@ -75,7 +75,8 @@ void raw_mode(int set) {
 }
 
 /* Clear the screen */
-int clrscr(void) {
+int 
+clrscr(void) {
     if (write(STDOUT_FILENO, CLR_SCR, strlen(CLR_SCR)) < 0) {
         return (-1);
     }
@@ -92,11 +93,15 @@ int clrscr(void) {
 }
 
 /* Get screen size.*/
-int scrsize(struct winsize *ws) {
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, ws) < 0) {
+int 
+scrsize(Pose *p) {
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) < 0) {
         perror("ioctl");
         return (1);
     }
 
+    p->row = ws.ws_row;
+    p->col = ws.ws_col;
     return (0);
 }

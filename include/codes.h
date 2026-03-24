@@ -3,8 +3,6 @@
 
 #include "pose.h"
 
-#include <termios.h>
-
 /*
  * Cursor Movement
  */
@@ -60,6 +58,6 @@ int setcsr(Pose p);
 int setcsr_vis(int set);
 void raw_mode(int set);
 int clrscr(void);
-int scrsize(struct winsize *ws);
+int scrsize(Pose *ws);
 
 #endif

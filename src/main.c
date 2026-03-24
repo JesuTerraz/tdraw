@@ -8,7 +8,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define NUM_ENTITIES 10000
+#define NUM_ENTITIES 10
 
 Model
 create_player_model(void)
@@ -21,7 +21,7 @@ create_player_model(void)
     m.p = p;
     m.speed = v;
 
-    create_model(&m, 'X', GREEN);
+    create_model(&m, 'X', GREEN, 2);
 
     return (m);
 }
@@ -35,14 +35,14 @@ create_entity_model(void)
     int y = (rand() % WINSIZE.col) + 1;
 
     Pose p = { x, y };
-    Pose v = { 1, 1};
+    Pose v = { 1, 1 };
 
     m.p = p;
     m.speed = v;
 
     char c = '0' + (rand() % 10);
     PixelColor pc = (rand() % WHITE);
-    create_model(&m, c, pc);
+    create_model(&m, c, pc, 1);
 
     return (m);
 }
@@ -70,7 +70,7 @@ player_loop(void)
 
     draw_model(player);
 
-    draw_scr();
+    draw();
 
     while(read(STDIN_FILENO, &c, 1) == 1) {
         Input input = parse_input(c);
@@ -89,13 +89,18 @@ player_loop(void)
             play_entity(&entities[i]);
         }
 
-        draw_scr();
+        draw();
     }
 }
 
-int main()
+int 
+main(int argc, char **argv)
 {
-    init_scr();
+    if (argc > 1) {
+        parse_cmdline(argc, argv);
+    }
+
+    init_scr(CONFIG.dopts);
     srand(time(NULL));
 
     player_loop();

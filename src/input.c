@@ -1,5 +1,12 @@
 #include "input.h"
 
+#include <string.h>
+
+Config CONFIG =  { 
+    DRAW,
+    NODEBUG 
+};
+
 Input
 parse_input(char c)
 {
@@ -30,4 +37,29 @@ parse_input(char c)
     }
 
     return input;
+}
+
+Config
+parse_cmdline(int argc, char **argv)
+{
+    int i;
+    if (argc <= 1) {
+        return CONFIG;
+    }
+
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-o")) {
+            CONFIG.dopts = OCCUPY;
+        }
+
+        if (strcmp(argv[i], "-z")) {
+            CONFIG.dopts = ORDER;
+        }
+
+        if (strcmp(argv[i], "-v")) {
+            CONFIG.debug = PRINT;
+        }
+    }
+
+    return CONFIG;
 }

@@ -3,8 +3,14 @@
 
 #include "pose.h"
 
-#define COLORLEN 5 // \033[3dm
-#define PIXELLEN 6 // \033[3dmc
+#define COLORLEN 5 // Length of escape sequence for setting colors.
+#define PIXELLEN ((2 * COLORLEN) + 1) // (Num escape sequences * COLORLEN ) + c
+
+typedef enum {
+    DRAW,
+    OCCUPY,
+    ORDER,
+} DrawOptions;
 
 typedef enum {
     BLACK,
@@ -18,6 +24,7 @@ typedef enum {
 } PixelColor;
 
 typedef struct {
+    int z;                      // Z-Axis ordering.
     char buf[PIXELLEN + 1];
 } Pixel;
 
@@ -26,14 +33,12 @@ extern Pose WINSIZE;
 extern char *FILL;
 extern Pixel *FILL_PIXEL;
 
-void init_scr(void);
+void init_scr(DrawOptions dopts);
 void draw(void);
-int draw_scr(void);
-int write_point(const char *buf, int buflen, Pose p);
-int write_line(const char *buf, int buflen, int row);
-int write_pixel(const Pixel pix, Pose pose);
 
-Pixel *get_pixel(char c, PixelColor p);
-
+int set_pixel(const Pixel pix, Pose pose);
+int remove_pixel(const Pixel pix, Pose pose);
+Pixel *get_pixel(Pose p);
+Pixel *create_pixel(char c, PixelColor p, int z);
 
 #endif

@@ -12,6 +12,6 @@ typedef struct model {
 } Model;
 
 void draw_model(Model model);
-int create_model(Model *model, char c, PixelColor p);
+int create_model(Model *model, char c, PixelColor p, int z);
 
 #endif

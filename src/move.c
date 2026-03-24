@@ -6,26 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 
-
-/* @Deprecated: Use move_pixel instead.*/
-void 
-move_buf(char *buf, int buflen, MovePose *mp)
-{
-    Pose t = add_pose(*mp->p, mp->offset);
-
-    if (check_bounds(t, WINSIZE)) {
-        return;
-    }
-
-    /* Erase where buf was*/
-    write_point(FILL, buflen, *(mp->p));
-
-    /* Fill where buf is now*/
-    mp->p->row = t.row;
-    mp->p->col = t.col;
-    write_point(buf, buflen, *(mp->p));
-}
-
 void
 move_pixel(Pixel *pixel, MovePose *mp)
 {
@@ -39,13 +19,13 @@ move_pixel(Pixel *pixel, MovePose *mp)
         return;
     }
 
-    /* Erase where pixel was*/
-    write_pixel(*FILL_PIXEL, *(mp->p));
+    /* Erase where the pixel was. */
+    remove_pixel(*pixel, *(mp->p));
 
     /* Fill where pixel is now*/
     mp->p->row = t.row;
     mp->p->col = t.col;
-    write_pixel(*pixel, *(mp->p));
+    set_pixel(*pixel, *(mp->p));
 }
 
 /*
