@@ -105,5 +105,7 @@ main(int argc, char **argv)
 
     player_loop();
 
+    destory_scr();
+
     return (0);
 }

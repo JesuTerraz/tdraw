@@ -241,8 +241,9 @@ init_scr(DrawOptions dopts)
         return;
     }
 
+    set_alt(1);
+    clr_scr();
     raw_mode(1);
-    clrscr();
     setcsr_vis(0);
 
     // Each row should have PIXELLEN * number of colomns + newline
@@ -274,4 +275,18 @@ init_scr(DrawOptions dopts)
     draw();
 
     return;
+}
+
+void
+destory_scr()
+{
+    free(FILL);
+    free(FILL_PIXEL);
+    free(scr);
+    free(zord);
+    free(oscore);
+
+    setcsr_vis(1);
+    raw_mode(0);
+    set_alt(0);
 }

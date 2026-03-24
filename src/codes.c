@@ -7,7 +7,8 @@
 #include <unistd.h>
 
 /* Retrieve the position of the cursor. */
-int getcsr(Pose *p) {
+int 
+getcsr(Pose *p) {
     char buf[32];
     int i = 0;
 
@@ -30,7 +31,8 @@ int getcsr(Pose *p) {
 }
 
 /* Set the cursor to a position.*/
-int setcsr(Pose p) {
+int 
+setcsr(Pose p) {
     char buf[32];
     int n;
 
@@ -47,7 +49,8 @@ int setcsr(Pose p) {
 }
 
 /* Set cursor visibility. */
-int setcsr_vis(int set) {
+int 
+setcsr_vis(int set) {
     char *buf = set ? SHOW_CRS : HIDE_CRS;
     int buflen = strlen(buf);
 
@@ -59,7 +62,8 @@ int setcsr_vis(int set) {
 }
 
 /* Set Terminal to Raw Mode (Echo and Canonical Mode)*/
-void raw_mode(int set) {
+void 
+raw_mode(int set) {
     struct termios tty;
     tcgetattr(STDIN_FILENO, &tty);
 
@@ -76,16 +80,24 @@ void raw_mode(int set) {
 
 /* Clear the screen */
 int 
-clrscr(void) {
-    if (write(STDOUT_FILENO, CLR_SCR, strlen(CLR_SCR)) < 0) {
+set_alt(int set) {
+    char *buf = set ? ENTER_ALT_SCR : EXIT_ALT_SCR;
+    int buflen = strlen(buf);
+
+    if (write(STDOUT_FILENO, buf, buflen) < 0) {
         return (-1);
     }
 
-    if (write(STDOUT_FILENO, CLR_SCROLL, strlen(CLR_SCROLL)) < 0) {
+    return (0);
+}
+
+int
+clr_scr() {
+    if (write(STDOUT_FILENO, CLR_SCROLL, strlen(CLR_SCROLL))) {
         return (-1);
     }
 
-    if (write(STDOUT_FILENO, ENTER_ALT_SCR, strlen(ENTER_ALT_SCR)) < 0) {
+    if (write(STDOUT_FILENO, CLR_SCR, strlen(CLR_SCR))) {
         return (-1);
     }
 

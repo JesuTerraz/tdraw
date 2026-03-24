@@ -34,6 +34,7 @@ extern char *FILL;
 extern Pixel *FILL_PIXEL;
 
 void init_scr(DrawOptions dopts);
+void destory_scr();
 void draw(void);
 
 int set_pixel(const Pixel pix, Pose pose);

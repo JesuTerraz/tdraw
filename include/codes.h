@@ -57,7 +57,8 @@ int getcsr(Pose *p);
 int setcsr(Pose p);
 int setcsr_vis(int set);
 void raw_mode(int set);
-int clrscr(void);
+int set_alt(int set);
 int scrsize(Pose *ws);
+int clr_scr();
 
 #endif
