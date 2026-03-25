@@ -2,6 +2,7 @@
 
 #include "codes.h"
 #include "queue.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,10 +10,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TO_SDX(x, y)    ((x - 1) * (rowlen)) + ((y - 1) * (PIXELLEN))
+#define TO_SDX(row, col)    ((row - 1) * (rowlen)) + ((col - 1) * (PIXELLEN))
 #define PIXEL_FORMAT    (SET_BFG_FORMAT SET_BG_FORMAT "%c")
-#define TO_FDX(x)       (x * PIXELLEN)
-#define TO_PDX(x, y)    ((x - 1) * (WINSIZE.col) + (y - 1))
+#define TO_FDX(col)       (col * PIXELLEN)
+#define TO_PDX(row, col)    ((row - 1) * (WINSIZE.y) + (col - 1))
 
 /*
  * The Screen buffer to write to the terminal.
@@ -21,6 +22,9 @@
 static char *scr;
 static int scrlen;
 static int rowlen;
+
+/* Logging. */
+static Logger *logger;
 
 /*
  * Represents a queue of pixels that want to be drawn to a position.
@@ -31,6 +35,7 @@ static int rowlen;
 */
 static Queue *pqueues;
 
+/* Options for drawing. */
 static DrawOptions doptions;
 
 /*
@@ -84,7 +89,7 @@ write_point(const char *buf, int buflen, Pose p)
         return (-1);
     }
 
-    int sdx = TO_SDX(p.row, p.col);
+    int sdx = TO_SDX(p.x, p.y);
     memcpy(&scr[sdx], buf, buflen);
     return (0);
 }
@@ -110,41 +115,41 @@ draw(void)
 
 /* Set a pixel on the buffer. */
 int
-set_pixel(const Pixel *pix, Pose pose)
+set_pixel(const Pixel *pix)
 {
     int pdx;
     QNode *node;
 
-    if (check_bounds(pose, WINSIZE))
+    if (check_bounds(pix->pose.p, WINSIZE))
         return (-1);
 
-    if ((node = create_node(pix, pix->z)) == NULL)
+    if ((node = create_node(pix, pix->pose.z)) == NULL)
         return (-1);
 
-    pdx = TO_PDX(pose.row, pose.col);
+    pdx = TO_PDX(pix->pose.p.x, pix->pose.p.y);
     if (!queue_append(&pqueues[pdx], node)) {
         return (0);
     }
 
     // Queue head has changed.
     const Pixel *head_pix = pqueues[pdx].head->val;
-    return (write_point(head_pix->buf, PIXELLEN, pose));
+    return (write_point(head_pix->buf, PIXELLEN, head_pix->pose.p));
 }
 
 /* Remove a pixel from the buffer.*/
 int
-remove_pixel(const Pixel *pix, Pose pose)
+remove_pixel(const Pixel *pix)
 {
     int pdx;
     QNode *node;
 
-    if (check_bounds(pose, WINSIZE))
+    if (check_bounds(pix->pose.p, WINSIZE))
         return (-1);
 
-    if ((node = create_node(pix, pix->z)) == NULL)
+    if ((node = create_node(pix, pix->pose.z)) == NULL)
         return (-1);
 
-    pdx = TO_PDX(pose.row, pose.col);
+    pdx = TO_PDX(pix->pose.p.x, pix->pose.p.y);
     if(!queue_remove(&pqueues[pdx], *node)) {
         free(node);
         return (0);
@@ -154,7 +159,7 @@ remove_pixel(const Pixel *pix, Pose pose)
 
     // Queue head has changed.
     const Pixel *head_pix = pqueues[pdx].head->val;
-    return (write_point(head_pix->buf, PIXELLEN, pose));
+    return (write_point(head_pix->buf, PIXELLEN, pix->pose.p));
 }
 
 /* Retrieve the pixel from the buffer. */
@@ -167,7 +172,7 @@ get_pixel(Pose p)
         return NULL;
     }
 
-    pdx = TO_PDX(p.row, p.col);
+    pdx = TO_PDX(p.x, p.y);
 
     // If queue has been working, whatever pixel is at head is the same
     // as what's in the buffer.
@@ -177,21 +182,20 @@ get_pixel(Pose p)
 
 /* Create a new Pixel. */
 Pixel *
-create_pixel(char c, PixelColor p, int z)
+create_pixel(char c, Pose colors, Pose3D pose)
 {
     Pixel *pixel = malloc(sizeof(Pixel));
     if (!pixel)
         return NULL;
 
     char tmp[PIXELLEN + 1]; // snprintf puts a \0 a huevo.
-    snprintf(tmp, PIXELLEN + 1, PIXEL_FORMAT, p, BLACK, c);
+    snprintf(tmp, PIXELLEN + 1, PIXEL_FORMAT, colors.x, colors.y, c);
 
     memcpy(pixel->buf, tmp, PIXELLEN); // Leave \0 out.
-    pixel->z = z;
+    pixel->pose = pose;
 
-    return pixel;
+    return (pixel);
 }
-
 
 /* 
  * Initialize the screen. 
@@ -216,33 +220,38 @@ init_scr(DrawOptions dopts)
     raw_mode(1);
     setcsr_vis(0);
 
+    logger = init_logger("draw");
+
     // Each row should have PIXELLEN * number of colomns + newline
-    rowlen = (PIXELLEN * WINSIZE.col) + 1;
+    rowlen = (PIXELLEN * WINSIZE.y) + 1;
     FILL = malloc(rowlen);
 
-    FILL_PIXEL = create_pixel('.', WHITE, 0);
-    for (i = 0; i < WINSIZE.col; i++) {
+    Pose FILL_COLORS = { WHITE, BLACK };
+    Pose3D FILL_POSE = { { 0, 0 }, 0 }; // Every FILL pixel will seem like it's at 0, 0, 0.
+
+    FILL_PIXEL = create_pixel('.', FILL_COLORS, FILL_POSE);
+    for (i = 0; i < WINSIZE.y; i++) {
         int fdx = TO_FDX(i);
         memcpy(&FILL[fdx], FILL_PIXEL->buf, PIXELLEN);
     }
 
     FILL[rowlen - 1] = '\n';
 
-    scrlen = WINSIZE.row * (rowlen) - 1;
+    scrlen = WINSIZE.x * (rowlen) - 1;
     scr = malloc(scrlen + 1);
-    for (i = 0; i < WINSIZE.row; i++) {
+    for (i = 0; i < WINSIZE.x; i++) {
         int rdx = i * rowlen;
 
         memcpy(&scr[rdx], FILL, rowlen);
-        if (i == WINSIZE.row - 1)
+        if (i == WINSIZE.x - 1)
             scr[rdx + rowlen - 1] = '\0'; // last row replace \n with \0
     }
 
-    pqueues = calloc(WINSIZE.row * WINSIZE.col, sizeof(Queue));
+    pqueues = calloc(WINSIZE.x * WINSIZE.y, sizeof(Queue));
 
     // Fill pqueues by setting FILL_PIXEL as the first node.
     FILL_QNODE = create_node(FILL_PIXEL, 0);
-    for (i = 0; i < WINSIZE.row * WINSIZE.col; i++) {
+    for (i = 0; i < WINSIZE.x * WINSIZE.y; i++) {
         queue_append(&pqueues[i], FILL_QNODE);
     }
 

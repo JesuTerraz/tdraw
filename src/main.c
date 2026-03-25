@@ -3,25 +3,29 @@
 #include "draw.h"
 #include "pose.h"
 #include "input.h"
+#include "logger.h"
 
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
-#define NUM_ENTITIES 10
+#define NUM_ENTITIES 10000
+
+static Logger *logger;
 
 Model
 create_player_model(void)
 {
     Model m;
 
-    Pose p = { 1, 1 };
+    Pose3D p = { { 1, 1 }, 3};
     Pose v = { 1, 1 };
+    Pose c = { RED, WHITE };
 
     m.p = p;
     m.speed = v;
 
-    create_model(&m, 'X', GREEN, 2);
+    create_model(&m, 'X', c, p);
 
     return (m);
 }
@@ -31,18 +35,18 @@ create_entity_model(void)
 {
     Model m;
 
-    int x = (rand() % WINSIZE.row) + 1;
-    int y = (rand() % WINSIZE.col) + 1;
+    int x = (rand() % WINSIZE.x) + 1;
+    int y = (rand() % WINSIZE.y) + 1;
 
-    Pose p = { x, y };
+    Pose3D p = { { x, y }, 1 };
     Pose v = { 1, 1 };
 
     m.p = p;
     m.speed = v;
 
     char c = '0' + (rand() % 10);
-    PixelColor pc = (rand() % WHITE);
-    create_model(&m, c, pc, 1);
+    Pose colors = { (rand() % WHITE), (rand() % WHITE) };
+    create_model(&m, c, colors, p);
 
     return (m);
 }
@@ -75,6 +79,8 @@ player_loop(void)
     while(read(STDIN_FILENO, &c, 1) == 1) {
         Input input = parse_input(c);
 
+        debug(logger, "Received input");
+
         if (input.kind == INPUT_MOVE) {
             move_model(&player, input.value.move);
         }
@@ -100,12 +106,16 @@ main(int argc, char **argv)
         parse_cmdline(argc, argv);
     }
 
+    logger = init_logger("main");
+
     init_scr(CONFIG.dopts);
     srand(time(NULL));
 
     player_loop();
 
     destory_scr();
+
+    close_logger(logger);
 
     return (0);
 }

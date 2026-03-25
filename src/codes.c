@@ -24,7 +24,7 @@ getcsr(Pose *p) {
 
     buf[i + 1] = '\0';
 
-    if (sscanf(buf, CRS_POS_FORMAT, &p->row, &p->col) != 2)
+    if (sscanf(buf, CRS_POS_FORMAT, &p->x, &p->y) != 2)
         return (-1);
 
     return (0);
@@ -36,7 +36,7 @@ setcsr(Pose p) {
     char buf[32];
     int n;
 
-    n = snprintf(buf, sizeof(buf), CRS_POS_FORMAT, p.row, p.col);
+    n = snprintf(buf, sizeof(buf), CRS_POS_FORMAT, p.x, p.y);
     if (n < 0 || n >= (int)sizeof(buf)) {
         return (-1);
     }
@@ -113,7 +113,7 @@ scrsize(Pose *p) {
         return (1);
     }
 
-    p->row = ws.ws_row;
-    p->col = ws.ws_col;
+    p->x = ws.ws_row;
+    p->y = ws.ws_col;
     return (0);
 }

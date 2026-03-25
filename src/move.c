@@ -7,25 +7,24 @@
 #include <unistd.h>
 
 void
-move_pixel(Pixel *pixel, MovePose *mp)
+move_pixel(Pixel *pixel, Pose offset)
 {
-    if (!pixel || !mp) {
+    if (!pixel) {
         return;
     }
 
-    Pose t = add_pose(*mp->p, mp->offset);
+    Pose t = add_pose(pixel->pose.p, offset);
 
     if (check_bounds(t, WINSIZE)) {
         return;
     }
 
     /* Erase where the pixel was. */
-    remove_pixel(pixel, *(mp->p));
+    remove_pixel(pixel);
 
     /* Fill where pixel is now*/
-    mp->p->row = t.row;
-    mp->p->col = t.col;
-    set_pixel(pixel, *(mp->p));
+    pixel->pose.p = t;
+    set_pixel(pixel);
 }
 
 /*
@@ -34,7 +33,7 @@ move_pixel(Pixel *pixel, MovePose *mp)
 void
 move_model(Model *model, MoveCmd opt)
 {
-    MovePose mp;
+    Pose offset;
 
     if (!model) {
         return;
@@ -43,20 +42,20 @@ move_model(Model *model, MoveCmd opt)
     /* Find which movement is requested. */
     switch(opt) {
         case MOVE_UP:
-            mp.offset.row = -1 * model->speed.row;
-            mp.offset.col = 0;
+            offset.x = -1 * model->speed.x;
+            offset.y = 0;
             break;
         case MOVE_DOWN:
-            mp.offset.row = model->speed.row;
-            mp.offset.col = 0;
+            offset.x = model->speed.x;
+            offset.y = 0;
             break;
         case MOVE_RIGHT:
-            mp.offset.row = 0;
-            mp.offset.col = model->speed.col;
+            offset.x = 0;
+            offset.y = model->speed.y;
             break;
         case MOVE_LEFT:
-            mp.offset.row = 0;
-            mp.offset.col = -1 * model->speed.col;
+            offset.x = 0;
+            offset.y = -1 * model->speed.y;
             break;
         default:
             return;
@@ -66,9 +65,7 @@ move_model(Model *model, MoveCmd opt)
      * Do some checks to make sure movement won't leave 
      * the model outside of the window.
     */
-    // Done by the move_buf() call, no need to check here.
 
     /* Move the model.*/
-    mp.p = &model->p;
-    move_pixel(model->pixel, &mp);
+    move_pixel(model->pixel, offset);
 }

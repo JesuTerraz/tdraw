@@ -5,13 +5,13 @@
 #include "pose.h"
 
 typedef struct model {
-    Pose p;         // Current Position.
+    Pose3D p;       // Current Position.
     Pose speed;     // Movement speed.
-    Pixel *pixel;  // Pixels.
+    Pixel *pixel;   // Pixels.
     int len;        // Num Pixels (limit 1 for now.)
 } Model;
 
 void draw_model(Model model);
-int create_model(Model *model, char c, PixelColor p, int z);
+int create_model(Model *model, char c, Pose colors, Pose3D pose);
 
 #endif

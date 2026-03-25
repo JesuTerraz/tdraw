@@ -7,13 +7,13 @@
 void
 draw_model(Model model)
 {
-    set_pixel(model.pixel, model.p);
+    set_pixel(model.pixel);
 }
 
 int
-create_model(Model *model, char c, PixelColor p, int z)
+create_model(Model *model, char c, Pose colors, Pose3D pose)
 {
-    Pixel *pixel = create_pixel(c, p, z);
+    Pixel *pixel = create_pixel(c, colors, pose);
     if (pixel == NULL) {
         return (-1);
     }

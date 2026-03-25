@@ -1,25 +1,43 @@
 #include "pose.h"
 
 Pose
-add_pose(Pose x, Pose y)
+add_pose(Pose a, Pose b)
 {
     Pose t;
-    t.row = x.row + y.row;
-    t.col = x.col + y.col;
+    t.x = a.x + b.x;
+    t.y = a.y + b.y;
 
-    return t;
+    return (t);
+}
+
+Pose3D
+add_pose3d(Pose3D a, Pose3D b)
+{
+    Pose3D t;
+    Pose t2D = add_pose(a.p, b.p);
+
+    t.p = t2D;
+    t.z = a.z + b.z;
+
+    return (t);
 }
 
 int
 check_bounds(Pose p, Pose b)
 {
-    if (p.row < 1 || p.row > b.row )
+    if (p.x < 1 || p.x > b.x )
         return (-1);
 
-    if (p.col < 1 || p.col > b.col)
+    if (p.y < 1 || p.y > b.y)
         return (-1);
 
     return (0);
+}
+
+int
+check_bounds3d(Pose3D p, Pose b)
+{
+    return (check_bounds(p.p, b));
 }
 
 int
