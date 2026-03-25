@@ -7,7 +7,7 @@
 void
 draw_model(Model model)
 {
-    set_pixel(*model.pixel, model.p);
+    set_pixel(model.pixel, model.p);
 }
 
 int

@@ -20,12 +20,12 @@ move_pixel(Pixel *pixel, MovePose *mp)
     }
 
     /* Erase where the pixel was. */
-    remove_pixel(*pixel, *(mp->p));
+    remove_pixel(pixel, *(mp->p));
 
     /* Fill where pixel is now*/
     mp->p->row = t.row;
     mp->p->col = t.col;
-    set_pixel(*pixel, *(mp->p));
+    set_pixel(pixel, *(mp->p));
 }
 
 /*

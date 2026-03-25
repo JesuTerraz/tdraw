@@ -37,8 +37,8 @@ void init_scr(DrawOptions dopts);
 void destory_scr();
 void draw(void);
 
-int set_pixel(const Pixel pix, Pose pose);
-int remove_pixel(const Pixel pix, Pose pose);
+int set_pixel(const Pixel *pix, Pose pose);
+int remove_pixel(const Pixel *pix, Pose pose);
 Pixel *get_pixel(Pose p);
 Pixel *create_pixel(char c, PixelColor p, int z);
 

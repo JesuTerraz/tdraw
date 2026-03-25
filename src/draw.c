@@ -1,6 +1,7 @@
 #include "draw.h"
 
 #include "codes.h"
+#include "queue.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,23 +23,23 @@ static int scrlen;
 static int rowlen;
 
 /*
- * Both of these are indexed by number of pixels. 
- * Use PDX to index them.
+ * Represents a queue of pixels that want to be drawn to a position.
+ *  The first pixel an any queue is always written.
+ *  If a pixel is the first by the time draw() is called, this pixel is draw.
+ * 
+ *  IMPORTANT: Use PDX to index.
 */
-/* zord: Z ordering.*/
-/* oscore: Occupancy Score.*/
-static int *zord, *oscore;
-// static char *debugbuf;
-static int debuglen;
+static Queue *pqueues;
 
 static DrawOptions doptions;
 
 /*
- * A Full row of the Screen Buffer.
- * Use FDX to index it.
+* A Full row of the Screen Buffer.
+* Use FDX to index it.
 */
 char *FILL;
 Pixel *FILL_PIXEL;
+static QNode *FILL_QNODE;
 
 /* Source of truth for terminal winsize.*/
 Pose WINSIZE;
@@ -109,99 +110,68 @@ draw(void)
 
 /* Set a pixel on the buffer. */
 int
-set_pixel(const Pixel pix, Pose pose)
+set_pixel(const Pixel *pix, Pose pose)
 {
     int pdx;
+    QNode *node;
 
     if (check_bounds(pose, WINSIZE))
         return (-1);
 
+    if ((node = create_node(pix, pix->z)) == NULL)
+        return (-1);
+
     pdx = TO_PDX(pose.row, pose.col);
-
-    // Show interest in the spot. Z = 0 doesn't count.
-    if (pix.z > 0)
-        oscore[pdx] += 1;
-
-    // Check if an existing pixel has higher priority.
-    if (pix.z < zord[pdx])
-        return 0;
-
-    zord[pdx] = pix.z;
-
-    // Default Behavior.
-    if (doptions == DRAW)
-        return (write_point(pix.buf, PIXELLEN, pose));
-
-    /* Debug */
-    int dchar;
-    Pixel *dpix;
-
-    switch (doptions) {
-        case OCCUPY:
-            dchar = oscore[pdx];
-            break;
-        case ORDER:
-            dchar = zord[pdx];
-            break;
-        default:
-            return (-1);
+    if (!queue_append(&pqueues[pdx], node)) {
+        return (0);
     }
 
-    dchar = dchar > 9 ? '9' : '0' + dchar;
-    dpix = create_pixel(dchar, WHITE, pix.z);
-    int success = write_point(dpix->buf, PIXELLEN, pose);
-
-    free(dpix);
-
-    return (success);
-
+    // Queue head has changed.
+    const Pixel *head_pix = pqueues[pdx].head->val;
+    return (write_point(head_pix->buf, PIXELLEN, pose));
 }
 
 /* Remove a pixel from the buffer.*/
 int
-remove_pixel(const Pixel pix, Pose pose)
+remove_pixel(const Pixel *pix, Pose pose)
 {
     int pdx;
+    QNode *node;
 
     if (check_bounds(pose, WINSIZE))
         return (-1);
 
+    if ((node = create_node(pix, pix->z)) == NULL)
+        return (-1);
+
     pdx = TO_PDX(pose.row, pose.col);
-
-    // Make sure not to strip higher ordered pixels of their spot.
-    if (pix.z >= zord[pdx])
-        zord[pdx] = 0; // Let anyone take this.
-
-    if (oscore[pdx] > 0)
-        oscore[pdx] -= 1; // Show one less occupant interested here.
-
-    // No one wants this pixel, fill it for now.
-    if (!oscore[pdx]) {
-        set_pixel(*FILL_PIXEL, pose);
+    if(!queue_remove(&pqueues[pdx], *node)) {
+        free(node);
+        return (0);
     }
 
-    return (0);
+    free(node);
+
+    // Queue head has changed.
+    const Pixel *head_pix = pqueues[pdx].head->val;
+    return (write_point(head_pix->buf, PIXELLEN, pose));
 }
 
 /* Retrieve the pixel from the buffer. */
 Pixel *
 get_pixel(Pose p)
 {
-    int sdx, pdx;
+    int pdx;
 
     if (check_bounds(p, WINSIZE)) {
         return NULL;
     }
 
-    sdx = TO_SDX(p.row, p.col);
     pdx = TO_PDX(p.row, p.col);
 
-
-    Pixel *pixel = malloc(sizeof(Pixel));
-
-    pixel->z = zord[pdx];
-
-    memcpy(pixel->buf, &scr[sdx], PIXELLEN);
+    // If queue has been working, whatever pixel is at head is the same
+    // as what's in the buffer.
+    Pixel *pixel = (Pixel *) pqueues[pdx].head->val;
     return pixel;
 }
 
@@ -268,9 +238,13 @@ init_scr(DrawOptions dopts)
             scr[rdx + rowlen - 1] = '\0'; // last row replace \n with \0
     }
 
-    debuglen = WINSIZE.row * WINSIZE.col;
-    zord = calloc(debuglen, sizeof(int));
-    oscore = calloc(debuglen, sizeof(int));
+    pqueues = calloc(WINSIZE.row * WINSIZE.col, sizeof(Queue));
+
+    // Fill pqueues by setting FILL_PIXEL as the first node.
+    FILL_QNODE = create_node(FILL_PIXEL, 0);
+    for (i = 0; i < WINSIZE.row * WINSIZE.col; i++) {
+        queue_append(&pqueues[i], FILL_QNODE);
+    }
 
     draw();
 
@@ -283,8 +257,7 @@ destory_scr()
     free(FILL);
     free(FILL_PIXEL);
     free(scr);
-    free(zord);
-    free(oscore);
+    free(pqueues);
 
     setcsr_vis(1);
     raw_mode(0);
