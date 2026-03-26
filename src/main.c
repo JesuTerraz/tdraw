@@ -13,40 +13,41 @@
 
 static Logger *logger;
 
-Model
+Model *
 create_player_model(void)
 {
-    Model m;
+    Model *m;
 
     Pose3D p = { { 1, 1 }, 3};
     Pose v = { 1, 1 };
     Pose c = { RED, WHITE };
+    PixelDef pixeldefs[1] = {
+        {'X', c, {{ 0, 0 }, 0}},
+    };
 
-    m.p = p;
-    m.speed = v;
-
-    create_model(&m, 'X', c, p);
+    m = create_model(p, v, 1, pixeldefs);
 
     return (m);
 }
 
-Model
+Model *
 create_entity_model(void)
 {
-    Model m;
+    Model *m;
 
     int x = (rand() % WINSIZE.x) + 1;
     int y = (rand() % WINSIZE.y) + 1;
 
     Pose3D p = { { x, y }, 1 };
     Pose v = { 1, 1 };
-
-    m.p = p;
-    m.speed = v;
-
-    char c = '0' + (rand() % 10);
     Pose colors = { (rand() % WHITE), (rand() % WHITE) };
-    create_model(&m, c, colors, p);
+    char c = '0' + (rand() % 10);
+    PixelDef pixeldefs[1] = {
+        {c, colors, {{0, 0}, 0}}
+    };
+
+
+    m = create_model(p, v, 1, pixeldefs);
 
     return (m);
 }
@@ -64,15 +65,26 @@ player_loop(void)
     char c;
     int i;
 
-    Model player = create_player_model();
+    Model *player = create_player_model();
 
-    Model entities[NUM_ENTITIES];
+    if (!player) {
+        debug(logger, "Failed to create Player");
+        return;
+    }
+
+    debug(logger, "Created Player");
+
+    Model *(entities[NUM_ENTITIES]);
     for (i = 0; i < NUM_ENTITIES; i++) {
         entities[i] = create_entity_model();
         draw_model(entities[i]);
     }
 
+    debug(logger, "Created Entities");
+
     draw_model(player);
+
+    debug(logger, "Drew Player");
 
     draw();
 
@@ -82,7 +94,7 @@ player_loop(void)
         debug(logger, "Received input");
 
         if (input.kind == INPUT_MOVE) {
-            move_model(&player, input.value.move);
+            move_model(player, input.value.move);
         }
 
         if (input.kind == INPUT_CMD) {
@@ -92,7 +104,7 @@ player_loop(void)
         }
         
         for (i = 0; i < NUM_ENTITIES; i++) {
-            play_entity(&entities[i]);
+            play_entity(entities[i]);
         }
 
         draw();

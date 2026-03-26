@@ -34,6 +34,7 @@ void
 move_model(Model *model, MoveCmd opt)
 {
     Pose offset;
+    int i;
 
     if (!model) {
         return;
@@ -67,5 +68,7 @@ move_model(Model *model, MoveCmd opt)
     */
 
     /* Move the model.*/
-    move_pixel(model->pixel, offset);
+    for (i = 0; i < model->len; i++) {
+        move_pixel(model->pixels[i], offset);
+    }
 }
