@@ -1,7 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include "move.h"
+#include "model.h"
 
 typedef enum {
     INPUT_NONE,

@@ -219,4 +219,6 @@ queue_pop(Queue *queue)
     queue->tail = queue->tail->prev;
     node->next = (NULL);
     node->prev = (NULL);
+
+    return (NULL);
 }

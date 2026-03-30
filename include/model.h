@@ -17,8 +17,22 @@ typedef struct model {
     Pixel *pixels[0];   // Pixels.
 } Model;
 
+typedef enum {
+    MOVE_NONE,
+    MOVE_UP,
+    MOVE_LEFT,
+    MOVE_DOWN,
+    MOVE_RIGHT,
+} MoveCmd;
+
+typedef struct move_pose {
+    Pose *p;
+    Pose offset;
+} MovePose;
+
 
 void draw_model(Model *model);
+void move_model(Model *mode, MoveCmd opt);
 Model *create_model(Pose3D pose, Pose speed, int num_pixels, PixelDef *pixels);
 
 #endif
