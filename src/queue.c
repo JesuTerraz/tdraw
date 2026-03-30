@@ -112,6 +112,46 @@ queue_append(Queue *queue, QNode *node)
 }
 
 int
+queue_push(Queue *queue, QNode *node)
+{
+    // Bad call.
+    if (!queue || !node)
+    {
+        return (0);
+    }
+
+    // Adding nodes without values doesn't make sense.
+    if (!node->val)
+    {
+        return (0);
+    }
+
+    // We won't support adding a whole queue.
+    if (node->next || node->prev)
+    {
+        return (0);
+    }
+
+    // Queue is empty.
+    if (!queue->head) {
+        node->prev = node;
+        node->next = node;
+
+        queue->head = node;
+        queue->tail = node;
+        queue->len++;
+        return (1);
+    }
+
+    // Queue should have been "initialized" correctly above.
+    node->next = queue->head;
+    queue->head->prev = node;
+    queue->head = node;
+
+    return (1);
+}
+
+int
 queue_remove(Queue *queue, const QNode node)
 {
     QNode *removed, *curr, *prev;
@@ -159,4 +199,24 @@ queue_remove(Queue *queue, const QNode node)
 
     free(curr);
     return (0);
+}
+
+QNode *
+queue_pop(Queue *queue)
+{
+    QNode *node;
+
+    if (!queue) {
+        return (NULL);
+    }
+
+    if (!queue->tail) {
+        return (NULL);
+    }
+
+    node = queue->tail;
+    queue->tail->prev->next = queue->tail->prev->next; // Itself, but safe.
+    queue->tail = queue->tail->prev;
+    node->next = (NULL);
+    node->prev = (NULL);
 }
