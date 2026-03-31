@@ -1,16 +1,13 @@
-#include "model.h"
-#include "draw.h"
-#include "pose.h"
+#include "tdlib.h"
 #include "input.h"
-#include "logger.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
 #define NUM_ENTITIES 10000
 
-static Logger *logger;
 
 Model *
 create_player_model(void)
@@ -67,11 +64,8 @@ player_loop(void)
     Model *player = create_player_model();
 
     if (!player) {
-        debug(logger, "Failed to create Player");
         return;
     }
-
-    debug(logger, "Created Player");
 
     Model *(entities[NUM_ENTITIES]);
     for (i = 0; i < NUM_ENTITIES; i++) {
@@ -79,18 +73,12 @@ player_loop(void)
         draw_model(entities[i]);
     }
 
-    debug(logger, "Created Entities");
-
     draw_model(player);
-
-    debug(logger, "Drew Player");
 
     draw();
 
     while(read(STDIN_FILENO, &c, 1) == 1) {
         Input input = parse_input(c);
-
-        debug(logger, "Received input");
 
         if (input.kind == INPUT_MOVE) {
             move_model(player, input.value.move);
@@ -117,16 +105,12 @@ main(int argc, char **argv)
         parse_cmdline(argc, argv);
     }
 
-    logger = init_logger("main");
-
-    init_scr(CONFIG.dopts);
+    init();
     srand(time(NULL));
 
     player_loop();
 
     destory_scr();
-
-    close_logger(logger);
 
     return (0);
 }

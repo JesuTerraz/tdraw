@@ -24,7 +24,7 @@ static int scrlen;
 static int rowlen;
 
 /* Logging. */
-static Logger *logger;
+// static Logger *logger;
 
 /*
  * Represents a queue of pixels that want to be drawn to a position.
@@ -219,8 +219,6 @@ init_scr(DrawOptions dopts)
     clr_scr();
     raw_mode(1);
     setcsr_vis(0);
-
-    logger = init_logger("draw");
 
     // Each row should have PIXELLEN * number of colomns + newline
     rowlen = (PIXELLEN * WINSIZE.y) + 1;

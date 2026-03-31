@@ -1,23 +1,40 @@
 CC = cc
 CFLAGS = -Wall -Wextra -Werror -std=c11 -Iinclude
 
-SRC = main.c src/draw.c src/codes.c src/model.c src/input.c src/pose.c src/queue.c src/logger.c
-OBJ = $(addprefix build/,$(notdir $(SRC:.c=.o)))
-TARGET = tdraw
+TEST = tests/demo
 
-.PHONY: all clean fclean re run
+ALL = $(TEST) tdlib.a
 
-all: $(TARGET)
+TDLIB_SRCS = src/tdlib.c src/draw.c src/codes.c src/model.c src/input.c src/pose.c src/queue.c src/logger.c
+TDLIB_OBJS = $(addprefix build/,$(notdir $(TDLIB_SRCS:.c=.o)))
 
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+%: %.o
+	$(LINK.o) -o $@ $^ $(LOADLIBES) $(LDLIBS)
+
+LINK.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
+
+%: %.c
+%: %.cc
+%: %.cpp
+
+all: $(ALL)
+
+tdlib.a: $(TDLIB_OBJS)
+	rm -f $@
+	ar rv $@ $(TDLIB_OBJS)
+	ranlib $@
+
+$(TARGET): $(TDLIB_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(TDLIB_OBJS)
+
+$(TEST): tdlib.a
 
 build/%.o: src/%.c
 	mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(TDLIB_OBJS) $(ALL)
 
 fclean: clean
 	rm -rf build $(TARGET)
