@@ -33,7 +33,7 @@ static int rowlen;
  * 
  *  IMPORTANT: Use PDX to index.
 */
-static Queue *pqueues;
+static PQueue *pqueues;
 
 /* Options for drawing. */
 static DrawOptions doptions;
@@ -44,7 +44,7 @@ static DrawOptions doptions;
 */
 char *FILL;
 Pixel *FILL_PIXEL;
-static QNode *FILL_QNODE;
+static PNode *FILL_PNODE;
 
 /* Source of truth for terminal winsize.*/
 Pose WINSIZE;
@@ -118,7 +118,7 @@ int
 set_pixel(const Pixel *pix)
 {
     int pdx;
-    QNode *node;
+    PNode *node;
 
     if (check_bounds(pix->pose.p, WINSIZE))
         return (-1);
@@ -141,7 +141,7 @@ int
 remove_pixel(const Pixel *pix)
 {
     int pdx;
-    QNode *node;
+    PNode *node;
 
     if (check_bounds(pix->pose.p, WINSIZE))
         return (-1);
@@ -245,12 +245,12 @@ init_scr(DrawOptions dopts)
             scr[rdx + rowlen - 1] = '\0'; // last row replace \n with \0
     }
 
-    pqueues = calloc(WINSIZE.x * WINSIZE.y, sizeof(Queue));
+    pqueues = calloc(WINSIZE.x * WINSIZE.y, sizeof(PQueue));
 
     // Fill pqueues by setting FILL_PIXEL as the first node.
-    FILL_QNODE = create_node(FILL_PIXEL, 0);
+    FILL_PNODE = create_node(FILL_PIXEL, 0);
     for (i = 0; i < WINSIZE.x * WINSIZE.y; i++) {
-        queue_append(&pqueues[i], FILL_QNODE);
+        queue_append(&pqueues[i], FILL_PNODE);
     }
 
     draw();

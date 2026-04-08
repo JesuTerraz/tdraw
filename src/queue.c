@@ -8,10 +8,10 @@
  * @returns the last node where prio >= match.prio.
  * Returns node if match.prio > node.prio.
 */
-static QNode *
-walk_queue(QNode *node, QNode *match)
+static PNode *
+walk_queue(PNode *node, PNode *match)
 {
-    QNode *curr, *prev;
+    PNode *curr, *prev;
 
     if (!node || !match) {
         return (0);
@@ -32,18 +32,18 @@ walk_queue(QNode *node, QNode *match)
 }
 
 static int
-compare_nodes(QNode n, QNode m)
+compare_nodes(PNode n, PNode m)
 {
     return n.prio == m.prio && n.val == m.val;
 }
 
 
-/* Public facing methods. */
+/* PQueue Methods . */
 
-QNode *
+PNode *
 create_node(const void *val, int prio)
 {
-    QNode *node;
+    PNode *node;
 
     // Should we support negative prios?
     if (!val)
@@ -51,7 +51,13 @@ create_node(const void *val, int prio)
         return (NULL);
     }
 
-    node = malloc(sizeof(QNode));
+    node = malloc(sizeof(PNode));
+
+    if (!node)
+    {
+        return (NULL);
+    }
+
     node->val = val;
     node->prio = prio;
 
@@ -59,7 +65,7 @@ create_node(const void *val, int prio)
 }
 
 int
-queue_append(Queue *queue, QNode *node)
+queue_append(PQueue *queue, PNode *node)
 {
     // Bad call.
     if (!queue || !node)
@@ -98,7 +104,7 @@ queue_append(Queue *queue, QNode *node)
      * This is a queue so we'll place node at the end of
      * the subqueue where prio = node.prio.
     */
-    QNode *prev = walk_queue(queue->head, node);
+    PNode *prev = walk_queue(queue->head, node);
 
     // Should not really happen...
     if (!prev) {
@@ -112,49 +118,9 @@ queue_append(Queue *queue, QNode *node)
 }
 
 int
-queue_push(Queue *queue, QNode *node)
+queue_remove(PQueue *queue, const PNode node)
 {
-    // Bad call.
-    if (!queue || !node)
-    {
-        return (0);
-    }
-
-    // Adding nodes without values doesn't make sense.
-    if (!node->val)
-    {
-        return (0);
-    }
-
-    // We won't support adding a whole queue.
-    if (node->next || node->prev)
-    {
-        return (0);
-    }
-
-    // Queue is empty.
-    if (!queue->head) {
-        node->prev = node;
-        node->next = node;
-
-        queue->head = node;
-        queue->tail = node;
-        queue->len++;
-        return (1);
-    }
-
-    // Queue should have been "initialized" correctly above.
-    node->next = queue->head;
-    queue->head->prev = node;
-    queue->head = node;
-
-    return (1);
-}
-
-int
-queue_remove(Queue *queue, const QNode node)
-{
-    QNode *removed, *curr, *prev;
+    PNode *removed, *curr, *prev;
 
     // Bad call
     if (!queue || !node.val)
@@ -201,24 +167,92 @@ queue_remove(Queue *queue, const QNode node)
     return (0);
 }
 
+/* Queue Methods. */
+
+QNode *
+create_qnode(const void *val)
+{
+    QNode *node;
+
+    if (!val)
+    {
+        return (NULL);
+    }
+
+    node = malloc(sizeof(QNode));
+
+    if (!node)
+    {
+        return (NULL);
+    }
+
+    node->val = val;
+    node->next = node;
+    node->prev = node;
+
+    return (node);
+}
+
+int
+queue_push(Queue *queue, QNode *node)
+{
+    if (!queue || !node)
+    {
+        return (-1);
+    }
+
+    // In case queue is empty. Both should be assigned.
+    if (!queue->tail || !queue->head)
+    {
+        queue->tail = node;
+        queue->head = node;
+    }
+
+    // TODO: Check if other edge cases...
+
+    queue->tail->prev = node;
+    node->next = queue->tail;
+
+    queue->tail = node;
+    queue->len++;
+
+    return (0);
+}
+
 QNode *
 queue_pop(Queue *queue)
 {
     QNode *node;
 
-    if (!queue) {
+    if (!queue)
+    {
         return (NULL);
     }
 
-    if (!queue->tail) {
+    if (!queue->head)
+    {
         return (NULL);
     }
 
-    node = queue->tail;
-    queue->tail->prev->next = queue->tail->prev->next; // Itself, but safe.
-    queue->tail = queue->tail->prev;
-    node->next = (NULL);
-    node->prev = (NULL);
+    node = queue->head;
 
-    return (NULL);
+    // Queue will be empty.
+    if (queue->len == 1)
+    {
+        queue->head = NULL;
+        queue->tail = NULL;
+        queue->len = 0;
+
+        return (node);
+    }
+
+    // TODO: Other edge cases...
+
+    queue->head = node->next;
+    queue->head->prev = queue->head;
+    queue->len--;
+
+    node->next = node;
+
+    return (node);
 }
