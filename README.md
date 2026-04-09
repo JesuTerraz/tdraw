@@ -1,63 +1,49 @@
 # tdraw
 
-`tdraw` is a small C project for drawing and moving colored characters in the terminal using ANSI escape codes and an in-memory screen buffer.
+`tdraw` is a C11 terminal drawing playground with a small static library (`tdlib.a`) and a demo app (`tests/demo`).
 
-## Features
-
-- Demonstrates basic terminal rendering, input handling, and model movement.
-- Spawns one player (`X`, green) and many random entities (colored digits).
-- Redraws the scene in a loop while reading keyboard input in raw mode.
+It uses an in-memory screen buffer, ANSI escape sequences, and a threaded runtime that continuously moves and redraws models.
 
 ## Requirements
 
-- macOS or Linux terminal with ANSI escape sequence support
+- macOS or Linux terminal with ANSI support
 - `make`
 - C compiler with C11 support (`cc`, `clang`, or `gcc`)
 
-## Build
+## Build And Run
 
-From the project root:
+Build default artifacts:
 
 ```bash
 make
 ```
 
-This builds the `tdraw` binary.
-
-## Run
+Run demo:
 
 ```bash
-./tdraw
+./tests/demo
 ```
 
-## Controls
+Or build and run via Make target:
 
-- `w`: move up
-- `a`: move left
-- `s`: move down
-- `d`: move right
-- `q`: quit
-
-## Make Targets
-
-- `make` or `make all`: build
-- `make clean`: remove object files
-- `make fclean`: remove objects, `build/`, and binary
-- `make re`: full rebuild
+```bash
+make run
+```
 
 ## Project Layout
 
-- `src/main.c`: main loop, player/entity setup
-- `src/draw.c`: screen buffer initialization and rendering
-- `src/codes.c`: terminal control helpers (cursor, raw mode, clear screen)
-- `src/input.c`: key parsing into input commands
-- `src/move.c`: movement logic
-- `src/model.c`: model creation and drawing
-- `include/`: public headers and shared types
+- `include/`: public headers (`draw.h`, `model.h`, `tdlib.h`, etc.)
+- `src/draw.c`: screen buffer and pixel queue rendering
+- `src/codes.c`: terminal/ANSI and tty helpers (`scrsize`, cursor helpers)
+- `src/model.c`: model creation and movement application
+- `src/queue.c`: priority queue helpers used by draw path
+- `src/tdraw.c`: threaded runtime (`draw` thread + writer threads)
+- `src/tdlib.c`: thin library facade (`init`, `shutdown`, etc.)
+- `tests/demo.c`: demo client and main entry point
 
-## Notes
+## Terminal Recovery
 
-- If your terminal state looks broken after exit, run:
+If your terminal state is left in a bad mode after interruption:
 
 ```bash
 stty sane
