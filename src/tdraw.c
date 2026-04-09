@@ -25,7 +25,7 @@ typedef struct write_semaphore {
 static WSemaphore semaphore;
 
 static pthread_t dtid;                  // Drawing thread.
-// static pthread_t btid;               // Balancing thread.
+static pthread_t btid;               // Balancing thread.
 static pthread_t wtids[MAXTHREADS];     // Writing threads.
 static struct thread_input inputs[MAXTHREADS];
 
@@ -74,16 +74,36 @@ void *
 write_routine(void *arg)
 {
     (void)arg;
-    Pose colors = { WHITE, WHITE };
-    Pose3D pose = { { 1, 1 },  5 };
-    Pose velocity = { 1, 1 };
+    // Pose colors = { WHITE, WHITE };
+    // Pose3D pose = { { 1, 1 },  5 };
+    // Pose velocity = { 1, 1 };
 
-    PixelDef pixeldefs[1] = {
-        {'V', colors, {{ 0, 0 }, 0}},
+    // PixelDef pixeldefs[1] = {
+    //     {'V', colors, {{ 0, 0 }, 0}},
+    // };
+
+    // Model *m;
+    // m = create_model(pose, velocity, 1, pixeldefs);
+
+    int x = (rand() % WINSIZE.x) + 1;
+    int y = (rand() % WINSIZE.y) + 1;
+
+    Pose3D p = { { x, y }, 1 };
+    Pose v = { 1, 1 };
+    Pose colors = { (rand() % WHITE), (rand() % WHITE) };
+    char c = '0' + (rand() % 10);
+    PixelDef pixeldefs[5] = {
+        {c, colors, {{ 0, 0 }, 0}},
+        {c, colors, {{ 0, 1 }, 0}},
+        {c, colors, {{ 0, 2 }, 0}},
+        {c, colors, {{ 1, 1 }, 0}},
+        {c, colors, {{ -1, 1 }, 0}},
     };
 
     Model *m;
-    m = create_model(pose, velocity, 1, pixeldefs);
+    m = create_model(p, v, 5, pixeldefs);
+
+    int drawn = 0;
 
     while(1)
     {
@@ -93,9 +113,14 @@ write_routine(void *arg)
         // Write Pixel To Buf.
         // Entry Routine.
         write_entry();
-
-        // Actual Routine.
+        
+        if (!drawn) {
+            draw_model(m);
+            drawn = 1;
+        }
+        
         move_model(m, r);
+        // Actual Routine.
 
         // Exit Routine
         write_exit();
@@ -152,7 +177,7 @@ draw_routine(void *arg)
         // Exit Routine.
         draw_exit();
 
-        usleep(1);
+        usleep(10000);
     }
 
     return (NULL);
@@ -211,6 +236,6 @@ start_tdraw(void)
         pthread_create(&wtids[i], NULL, write_routine, &inputs[i]);
     }
 
-    // pthread_create(&btid, NULL, balance_routine, NULL);
+    pthread_create(&btid, NULL, balance_routine, NULL);
 
 }

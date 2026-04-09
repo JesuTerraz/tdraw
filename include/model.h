@@ -32,7 +32,7 @@ typedef struct move_pose {
 
 
 void draw_model(Model *model);
-void move_model(Model *mode, MoveCmd opt);
+void move_model(Model *model, MoveCmd opt);
 Model *create_model(Pose3D pose, Pose speed, int num_pixels, PixelDef *pixels);
 
 #endif

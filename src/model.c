@@ -34,17 +34,13 @@ move_pixel(Pixel *pixel, Pose offset)
         return;
     }
 
-    Pose t = add_pose(pixel->pose.p, offset);
-
-    if (check_bounds(t, WINSIZE)) {
-        return;
-    }
-
     /* Erase where the pixel was. */
     remove_pixel(pixel);
 
-    /* Fill where pixel is now*/
+    Pose t = add_pose(pixel->pose.p, offset);
     pixel->pose.p = t;
+
+    /* Fill where pixel is now*/
     set_pixel(pixel);
 }
 
