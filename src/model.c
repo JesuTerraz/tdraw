@@ -79,12 +79,21 @@ move_model(Model *model, MoveCmd opt)
     /* 
      * Do some checks to make sure movement won't leave 
      * the model outside of the window.
+     * 
+     * We'll take the model's pose for this. Any pixels that
+     * offset out of bounds will simply not be shown.
     */
+    Pose t = add_pose(model->p.p, offset);
+    if (check_bounds(t, WINSIZE)) {
+        return;
+    }
 
     /* Move the model.*/
     for (i = 0; i < model->len; i++) {
         move_pixel(model->pixels[i], offset);
     }
+
+    model->p.p = t;
 }
 
 Model *
