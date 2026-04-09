@@ -1,10 +1,10 @@
 #include "tdlib.h"
 
-#include "draw.h"
+#include "tdraw.h"
 
 int init()
 {
-    init_scr(0);
+    start_tdraw();
     return (0);
 }
 
