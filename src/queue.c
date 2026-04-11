@@ -206,23 +206,26 @@ queue_push(Queue *queue, QNode *node)
     {
         queue->tail = node;
         queue->head = node;
+        queue->len++;
+        return (0);
     }
 
-    // TODO: Check if other edge cases...
-
-    queue->tail->prev = node;
-    node->next = queue->tail;
-
+    node->prev = queue->tail;
+    node->next = queue->head;
+    queue->tail->next = node;
+    queue->head->prev = node;
     queue->tail = node;
+
     queue->len++;
 
     return (0);
 }
 
-QNode *
+void *
 queue_pop(Queue *queue)
 {
     QNode *node;
+    void *val;
 
     if (!queue)
     {
@@ -243,16 +246,18 @@ queue_pop(Queue *queue)
         queue->tail = NULL;
         queue->len = 0;
 
-        return (node);
+        val = (void *) node->val;
+        free(node);
+        return (val);
     }
 
-    // TODO: Other edge cases...
-
     queue->head = node->next;
-    queue->head->prev = queue->head;
+    queue->head->prev = queue->tail;
+    queue->tail->next = queue->head;
     queue->len--;
 
-    node->next = node;
+    val = (void *) node->val;
+    free(node);
 
-    return (node);
+    return (val);
 }

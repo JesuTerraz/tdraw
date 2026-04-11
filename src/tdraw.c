@@ -9,6 +9,8 @@
 
 #define MAXTHREADS          1
 
+#define TO_TDX(row, col)    (row / (WINSIZE.x / MAXTHREADS))
+
 // Let each thread know it's ID
 struct thread_input {
     int tid;
@@ -25,7 +27,7 @@ typedef struct write_semaphore {
 static WSemaphore semaphore;
 
 static pthread_t dtid;                  // Drawing thread.
-static pthread_t btid;               // Balancing thread.
+// static pthread_t btid;               // Balancing thread.
 static pthread_t wtids[MAXTHREADS];     // Writing threads.
 static struct thread_input inputs[MAXTHREADS];
 
@@ -74,53 +76,30 @@ void *
 write_routine(void *arg)
 {
     (void)arg;
-    // Pose colors = { WHITE, WHITE };
-    // Pose3D pose = { { 1, 1 },  5 };
-    // Pose velocity = { 1, 1 };
-
-    // PixelDef pixeldefs[1] = {
-    //     {'V', colors, {{ 0, 0 }, 0}},
-    // };
-
-    // Model *m;
-    // m = create_model(pose, velocity, 1, pixeldefs);
-
-    int x = (rand() % WINSIZE.x) + 1;
-    int y = (rand() % WINSIZE.y) + 1;
-
-    Pose3D p = { { x, y }, 1 };
-    Pose v = { 1, 1 };
-    Pose colors = { (rand() % WHITE), (rand() % WHITE) };
-    char c = '0' + (rand() % 10);
-    PixelDef pixeldefs[5] = {
-        {c, colors, {{ 0, 0 }, 0}},
-        {c, colors, {{ 0, 1 }, 0}},
-        {c, colors, {{ 0, 2 }, 0}},
-        {c, colors, {{ 1, 1 }, 0}},
-        {c, colors, {{ -1, 1 }, 0}},
-    };
-
-    Model *m;
-    m = create_model(p, v, 5, pixeldefs);
-
-    int drawn = 0;
+    Pixel *pix = NULL;
 
     while(1)
     {
         // Retrieve pixel from queue.
-        MoveCmd r = (rand() % MOVE_RIGHT) + 1;
+        pthread_mutex_lock(&queue_mutex[0]);
 
-        // Write Pixel To Buf.
+        // Queue empty, need to wait for something to fill.
+        while (!tqueues[0].len)
+        {
+            pthread_cond_wait(&queue_notempty[0], &queue_mutex[0]);
+        }
+
+        pix = queue_pop(&tqueues[0]);
+        pthread_mutex_unlock(&queue_mutex[0]);
+
+        if (!pix)
+            continue;
+
         // Entry Routine.
         write_entry();
-        
-        if (!drawn) {
-            draw_model(m);
-            drawn = 1;
-        }
-        
-        move_model(m, r);
+
         // Actual Routine.
+        set_pixel(pix);
 
         // Exit Routine
         write_exit();
@@ -177,7 +156,7 @@ draw_routine(void *arg)
         // Exit Routine.
         draw_exit();
 
-        usleep(10000);
+        usleep(100000);
     }
 
     return (NULL);
@@ -188,25 +167,36 @@ draw_routine(void *arg)
  * queue.
 */
 void *
-balance_routine(void *arg)
+balance_routine(Pixel *pixel)
 {
-    (void)arg;
-
     // Entry Routine.
-    // Read library call from somewhere....
-    Pixel *pix;
+    QNode *node;
     int rc, tdx;
 
-    (void)pix;
-    tdx = 0;
+    (void)rc;
 
-    // Get TDX somehow....
-    // int tdx = TO_TDX(pix->pose.p.x, pix->pose.p.y);
-
-    if (!(rc = pthread_mutex_trylock(&queue_mutex[tdx]))) {
-        // queue_push(tqueues[tdx]);
-        pthread_mutex_unlock(&queue_mutex[tdx]);
+    if (check_bounds(pixel->pose.p, WINSIZE))
+    {
+        return (NULL);
     }
+
+    // The screen is divided horizontally.
+    tdx = TO_TDX(pixel->pose.p.x, pixel->pose.p.y);
+    node = create_qnode(pixel);
+
+    if (!node)
+    {
+        return (NULL);
+    }
+
+    // Ideally a try lock here...
+    pthread_mutex_lock(&queue_mutex[tdx]);
+    queue_push(&tqueues[tdx], node);
+
+    if (tqueues[tdx].len == 1)
+        pthread_cond_signal(&queue_notempty[tdx]);
+
+    pthread_mutex_unlock(&queue_mutex[tdx]);
 
     return (NULL);
 }
@@ -216,7 +206,6 @@ start_tdraw(void)
 {
     int i;
 
-    (void)tqueues;
     init_scr(0);
 
     semaphore.drawing = 0;
@@ -231,11 +220,14 @@ start_tdraw(void)
     // Multiple writers:
     for (i = 0; i < MAXTHREADS; i++) {
         inputs[i].tid = i;
+        tqueues[i].len = 0;
+        tqueues[i].head = NULL;
+        tqueues[i].tail = NULL;
         pthread_mutex_init(&queue_mutex[i], NULL);
         pthread_cond_init(&queue_notempty[i], NULL);
         pthread_create(&wtids[i], NULL, write_routine, &inputs[i]);
     }
 
-    pthread_create(&btid, NULL, balance_routine, NULL);
+    // pthread_create(&btid, NULL, balance_routine, NULL);
 
 }

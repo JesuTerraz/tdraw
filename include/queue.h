@@ -27,8 +27,6 @@ PNode *create_node(const void *val, int prio);
 /* 
  * Appends node to queue based on prio.
  *
- * Effects: Does NOT modify tail. May modify head.
- *
  * @returns 1 if the head has changed. 0 otherwise.
 */
 int queue_append(PQueue *queue, PNode *node);
@@ -39,7 +37,6 @@ int queue_append(PQueue *queue, PNode *node);
  *
  * Effects: Handles freeing the removed node. node here is just a
  *  place holder for finding nodes within the queue.
- *  Does NOT modify tail.
  * 
  * @returns 1 if the head has changed. 0 otherwise.
 */
@@ -61,6 +58,8 @@ typedef struct {
     QNode *tail;
 } Queue;
 
+QNode *create_qnode(const void *val);
+
 /*
  * Appends node to queue as tail.
 */
@@ -69,6 +68,7 @@ int queue_push(Queue *queue, QNode *node);
 /*
  * Removes the head of the queue.
 */
-QNode *queue_pop(Queue *queue);
+void *queue_pop(Queue *queue);
+
 
 #endif

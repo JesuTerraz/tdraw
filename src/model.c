@@ -56,6 +56,9 @@ move_model(Model *model, MoveCmd opt)
 
     /* Find which movement is requested. */
     switch(opt) {
+        case MOVE_NONE:
+            offset.x = 0;
+            offset.y = 0;
         case MOVE_UP:
             offset.x = -1 * model->speed.x;
             offset.y = 0;

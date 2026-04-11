@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define NUM_ENTITIES 100
+#define NUM_ENTITIES 10000
 
 
 Model *
@@ -15,9 +15,9 @@ create_player_model(void)
 {
     Model *m;
 
-    Pose3D p = { { 2, 2 }, 3};
+    Pose3D p = { { 20, 20 }, 3};
     Pose v = { 1, 1 };
-    Pose c = { RED, BLACK };
+    Pose c = { WHITE, BLACK };
     PixelDef pixeldefs[9] = {
         {'X', c, {{ 0, 0 }, 0}},
         {'X', c, {{ 0, 1 }, 0}},
@@ -28,7 +28,6 @@ create_player_model(void)
         {' ', c, {{ -1, 0 }, 0}},
         {' ', c, {{ 1, 2 }, 0}},
         {' ', c, {{ -1, 2 }, 0}},
-        // {' ', c, {{ -1, 1 }, 0}},
     };
 
     m = create_model(p, v, 9, pixeldefs);
@@ -73,39 +72,24 @@ void
 player_loop(void)
 {
     // char c;
-    // int i;
+    int i;
 
-    // Model *player = create_player_model();
+    Model *player = create_player_model();
 
-    // if (!player) {
-    //     return;
-    // }
+    if (!player) {
+        return;
+    }
 
-    // Model *(entities[NUM_ENTITIES]);
-    // for (i = 0; i < NUM_ENTITIES; i++) {
-    //     entities[i] = create_entity_model();
-    //     // draw_model(entities[i]);
-    // }
+    submit_model(player);
 
-    // draw_model(player);
+    Model *(entities[NUM_ENTITIES]);
+    for (i = 0; i < NUM_ENTITIES; i++) {
+        entities[i] = create_entity_model();
+        if (!entities[i])
+            continue;
 
-    // while(read(STDIN_FILENO, &c, 1) == 1) {
-    //     Input input = parse_input(c);
-
-    //     if (input.kind == INPUT_MOVE) {
-    //         move_model(player, input.value.move);
-    //     }
-
-    //     if (input.kind == INPUT_CMD) {
-    //         // Quit
-    //         if (input.value.cmd == QUIT)
-    //             break;
-    //     }
-        
-    //     for (i = 0; i < NUM_ENTITIES; i++) {
-    //         play_entity(entities[i]);
-    //     }
-    // }
+        submit_model(entities[i]);
+    }
 
     while(1) {
         // play_entity(entities[0]);

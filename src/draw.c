@@ -227,7 +227,7 @@ init_scr(DrawOptions dopts)
     Pose FILL_COLORS = { WHITE, BLACK };
     Pose3D FILL_POSE = { { 0, 0 }, 0 }; // Every FILL pixel will seem like it's at 0, 0, 0.
 
-    FILL_PIXEL = create_pixel('.', FILL_COLORS, FILL_POSE);
+    FILL_PIXEL = create_pixel(' ', FILL_COLORS, FILL_POSE);
     for (i = 0; i < WINSIZE.y; i++) {
         int fdx = TO_FDX(i);
         memcpy(&FILL[fdx], FILL_PIXEL->buf, PIXELLEN);

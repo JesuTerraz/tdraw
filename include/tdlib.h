@@ -13,7 +13,7 @@ int shutdown();
 /*
  * Submit a model to tdraw.
 */
-int submit_model();
+int submit_model(Model *model);
 
 /*
  * Move a specified model.

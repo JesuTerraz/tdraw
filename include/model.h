@@ -13,7 +13,7 @@ typedef struct {
 typedef struct model {
     Pose3D p;           // Current Position.
     Pose speed;         // Movement speed.
-    int len;            // Num Pixels (limit 1 for now.)
+    int len;            // Num Pixels
     Pixel *pixels[0];   // Pixels.
 } Model;
 
