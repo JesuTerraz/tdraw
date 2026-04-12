@@ -101,7 +101,8 @@ write_routine(void *arg)
         write_entry();
 
         // Actual Routine.
-        switch (pop->op) {
+        switch (pop->op)
+        {
             case SET:
                 set_pixel(pop->pixel);
                 break;
@@ -140,7 +141,8 @@ draw_entry(void)
     semaphore.drawing = 1;
 
     // Wait til writers are done.
-    while (semaphore.writers) {
+    while (semaphore.writers)
+    {
         pthread_cond_wait(&semaphore.write_done, &semaphore.mtx);
     }
 
@@ -217,9 +219,7 @@ balance_routine(PixelOp *pop)
     node = create_qnode(pop);
 
     if (!node)
-    {
         return (NULL);
-    }
 
     // Ideally a try lock here...
     pthread_mutex_lock(&queue_mutex[tdx]);
@@ -250,7 +250,8 @@ start_tdraw(void)
     pthread_create(&dtid, NULL, draw_routine, NULL);
     
     // Multiple writers:
-    for (i = 0; i < MAXTHREADS; i++) {
+    for (i = 0; i < MAXTHREADS; i++)
+    {
         inputs[i].tid = i;
         tqueues[i].len = 0;
         tqueues[i].head = NULL;
