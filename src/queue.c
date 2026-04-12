@@ -60,6 +60,7 @@ create_node(const void *val, int prio)
 
     node->val = val;
     node->prio = prio;
+    node->next = NULL;
 
     return (node);
 }

@@ -253,7 +253,7 @@ init_scr(DrawOptions dopts)
         queue_append(&pqueues[i], FILL_PNODE);
     }
 
-    draw();
+    //  draw();
 
     return;
 }

@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define NUM_ENTITIES 10000
+#define NUM_ENTITIES 100
 
 
 Model *
@@ -80,20 +80,26 @@ player_loop(void)
         return;
     }
 
-    submit_model(player);
+    draw_model(player);
 
     Model *(entities[NUM_ENTITIES]);
     for (i = 0; i < NUM_ENTITIES; i++) {
         entities[i] = create_entity_model();
+
         if (!entities[i])
             continue;
 
-        submit_model(entities[i]);
+        draw_model(entities[i]);
     }
 
+    usleep(1000000);
+
     while(1) {
-        // play_entity(entities[0]);
-        usleep(100000);
+        for (i = 0; i < NUM_ENTITIES; i++) {
+            play_entity(entities[i]);
+        }
+
+        usleep(1000);
     }
 }
 

@@ -1,7 +1,6 @@
+#include "tdraw.h"
 
-#include "draw.h"
 #include "queue.h"
-#include "model.h"
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -9,7 +8,7 @@
 
 #define MAXTHREADS          1
 
-#define TO_TDX(row, col)    (row / (WINSIZE.x / MAXTHREADS))
+#define TO_TDX(row, col)    ((row - 1) / (WINSIZE.x / MAXTHREADS))
 
 // Let each thread know it's ID
 struct thread_input {
@@ -75,34 +74,59 @@ write_exit(void)
 void *
 write_routine(void *arg)
 {
-    (void)arg;
-    Pixel *pix = NULL;
+    // Pixel *pix;
+    PixelOp *pop;
+    int tid;
+    struct thread_input *input = (struct thread_input *) arg;
+    tid = input->tid;
 
     while(1)
     {
         // Retrieve pixel from queue.
-        pthread_mutex_lock(&queue_mutex[0]);
+        pthread_mutex_lock(&queue_mutex[tid]);
 
         // Queue empty, need to wait for something to fill.
-        while (!tqueues[0].len)
+        while (!tqueues[tid].len)
         {
-            pthread_cond_wait(&queue_notempty[0], &queue_mutex[0]);
+            pthread_cond_wait(&queue_notempty[tid], &queue_mutex[tid]);
         }
 
-        pix = queue_pop(&tqueues[0]);
-        pthread_mutex_unlock(&queue_mutex[0]);
+        pop = queue_pop(&tqueues[tid]);
+        pthread_mutex_unlock(&queue_mutex[tid]);
 
-        if (!pix)
+        if (!pop || !pop->pixel)
             continue;
 
         // Entry Routine.
         write_entry();
 
         // Actual Routine.
-        set_pixel(pix);
+        switch (pop->op) {
+            case SET:
+                set_pixel(pop->pixel);
+                break;
+            case REMOVE:
+                remove_pixel(pop->pixel);
+                break;
+            case MOVE:
+                /* Erase where the pixel was. */
+                remove_pixel(pop->pixel);
+
+                Pose t = add_pose(pop->pixel->pose.p, pop->opts.offset);
+                pop->pixel->pose.p = t;
+
+                /* Fill where pixel is now*/
+                set_pixel(pop->pixel);
+                break;
+            default:
+                break;
+        }
 
         // Exit Routine
         write_exit();
+
+        // Free the PixelOperation.
+        free(pop);
     }
 
     return (NULL);
@@ -167,7 +191,7 @@ draw_routine(void *arg)
  * queue.
 */
 void *
-balance_routine(Pixel *pixel)
+balance_routine(PixelOp *pop)
 {
     // Entry Routine.
     QNode *node;
@@ -175,14 +199,17 @@ balance_routine(Pixel *pixel)
 
     (void)rc;
 
-    if (check_bounds(pixel->pose.p, WINSIZE))
+    if (!pop || !pop->pixel)
+        return (NULL);
+
+    if (check_bounds(pop->pixel->pose.p, WINSIZE))
     {
         return (NULL);
     }
 
     // The screen is divided horizontally.
-    tdx = TO_TDX(pixel->pose.p.x, pixel->pose.p.y);
-    node = create_qnode(pixel);
+    tdx = TO_TDX(pop->pixel->pose.p.x, pop->pixel->pose.p.y);
+    node = create_qnode(pop);
 
     if (!node)
     {
