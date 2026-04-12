@@ -204,6 +204,11 @@ balance_routine(PixelOp *pop)
 
     if (check_bounds(pop->pixel->pose.p, WINSIZE))
     {
+        // If we move, out of bounds is still expected to update.
+        // However, this bounds check is to protect against tdx out of bounds.
+        if (pop->op == MOVE)
+            pop->pixel->pose.p = add_pose(pop->pixel->pose.p, pop->opts.offset);
+
         return (NULL);
     }
 
