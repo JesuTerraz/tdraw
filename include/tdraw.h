@@ -11,6 +11,7 @@ typedef enum {
 } OperationType;
 
 typedef struct {
+    Pose3D pose;
     Pose offset;
 } OperationOpts;
 

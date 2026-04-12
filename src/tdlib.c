@@ -48,6 +48,9 @@ draw_model(Model *model)
         op->op = SET;
         op->pixel = model->pixels[i];
 
+        // Define where we want the SET operation to occur.
+        op->opts.pose = add_pose3d(model->p, model->pixels[i]->pose);
+
         submit_pixel(op);
     }
 }
@@ -69,6 +72,10 @@ remove_model(Model *model)
         op = malloc(sizeof(PixelOp));
         op->op = REMOVE;
         op->pixel = model->pixels[i];
+
+        // Define where we want the REMOVE operation to occur.
+        op->opts.pose = add_pose3d(model->p, model->pixels[i]->pose);
+
         submit_pixel(op);
     }
 }
@@ -78,8 +85,8 @@ move_model(Model *model, MoveCmd opt)
 {
     Pose offset;
     Pose t;
-    PixelOp *op;
-    int i;
+    // PixelOp *op;
+    // int i;
 
     if (!model) {
         return;
@@ -126,20 +133,14 @@ move_model(Model *model, MoveCmd opt)
     /* 
      * Update position.
      *
-     * Because submit takes a single mutable pixel. We can't
-     * trust that either will occur first.
-     * 
-     * Best to ensure that the movement is atomic here.
+     * We want Pixel to now be immutable. So non atomic operation 
+     * should be okay here...
     */
-    model->p.p = t;
-    for (i = 0; i < model->len; i++) {
-        op = malloc(sizeof(PixelOp));
-        op->pixel = model->pixels[i];
-        op->opts.offset = offset;
-        op->op = MOVE;
+    remove_model(model);
 
-        submit_pixel(op);
-    }
+    model->p.p = t;
+
+    draw_model(model);
 }
 
 Model *
@@ -155,8 +156,13 @@ create_model(Pose3D pose, Pose speed, int num_pixels, PixelDef *pixels)
 
     for (i = 0; i < num_pixels; i++)
     {
-        Pose3D actual_pose = add_pose3d(pose, pixels[i].offset);
-        Pixel *pixel = create_pixel(pixels[i].c, pixels[i].colors, actual_pose);
+        /*
+         * Pixels will now have offset as their pose.
+         * 
+         * Actual pose will have to be determined at submit time and provided by
+         * OperationOptions
+        */
+        Pixel *pixel = create_pixel(pixels[i].c, pixels[i].colors, pixels[i].offset);
         if (pixel == NULL) {
             return (NULL);
         }

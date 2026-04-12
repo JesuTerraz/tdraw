@@ -6,9 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define MAXTHREADS          1
-
-#define TO_TDX(row, col)    ((row - 1) / (WINSIZE.x / MAXTHREADS))
+#define MAXTHREADS          2
 
 // Let each thread know it's ID
 struct thread_input {
@@ -38,6 +36,21 @@ static struct thread_input inputs[MAXTHREADS];
 static Queue tqueues[MAXTHREADS];
 static pthread_cond_t queue_notempty[MAXTHREADS];
 static pthread_mutex_t queue_mutex[MAXTHREADS];
+
+static int
+to_tdx(Pose p)
+{
+    if (WINSIZE.x <= 0)
+        return (0);
+
+    if (p.x < 1)
+        return (0);
+
+    if (p.x > WINSIZE.x)
+        return (MAXTHREADS - 1);
+
+    return (((p.x - 1) * MAXTHREADS) / (WINSIZE.x));
+}
 
 void
 write_entry(void)
@@ -69,7 +82,7 @@ write_exit(void)
 
 /*
  * Pick up pixels from tqueues[wtid] and set them using
- * set_pixel(Pixel *pix);
+ * - set_pixel & remove_pixel
 */
 void *
 write_routine(void *arg)
@@ -104,20 +117,21 @@ write_routine(void *arg)
         switch (pop->op)
         {
             case SET:
-                set_pixel(pop->pixel);
+                set_pixel(pop->pixel, pop->opts.pose);
                 break;
             case REMOVE:
-                remove_pixel(pop->pixel);
+                remove_pixel(pop->pixel, pop->opts.pose);
                 break;
             case MOVE:
-                /* Erase where the pixel was. */
-                remove_pixel(pop->pixel);
+                // This shouldn't happen anymore...
+                // /* Erase where the pixel was. */
+                // remove_pixel(pop->pixel);
 
-                Pose t = add_pose(pop->pixel->pose.p, pop->opts.offset);
-                pop->pixel->pose.p = t;
+                // Pose t = add_pose(pop->pixel->pose.p, pop->opts.offset);
+                // pop->pixel->pose.p = t;
 
-                /* Fill where pixel is now*/
-                set_pixel(pop->pixel);
+                // /* Fill where pixel is now*/
+                // set_pixel(pop->pixel);
                 break;
             default:
                 break;
@@ -204,18 +218,13 @@ balance_routine(PixelOp *pop)
     if (!pop || !pop->pixel)
         return (NULL);
 
-    if (check_bounds(pop->pixel->pose.p, WINSIZE))
+    if (check_bounds(pop->opts.pose.p, WINSIZE))
     {
-        // If we move, out of bounds is still expected to update.
-        // However, this bounds check is to protect against tdx out of bounds.
-        if (pop->op == MOVE)
-            pop->pixel->pose.p = add_pose(pop->pixel->pose.p, pop->opts.offset);
-
         return (NULL);
     }
 
     // The screen is divided horizontally.
-    tdx = TO_TDX(pop->pixel->pose.p.x, pop->pixel->pose.p.y);
+    tdx = to_tdx(pop->opts.pose.p);
     node = create_qnode(pop);
 
     if (!node)

@@ -115,41 +115,41 @@ draw(void)
 
 /* Set a pixel on the buffer. */
 int
-set_pixel(const Pixel *pix)
+set_pixel(const Pixel *pix, const Pose3D pose)
 {
     int pdx;
     PNode *node;
 
-    if (check_bounds(pix->pose.p, WINSIZE))
+    if (check_bounds(pose.p, WINSIZE))
         return (-1);
 
-    if ((node = create_node(pix, pix->pose.z)) == NULL)
+    if ((node = create_node(pix, pose.z)) == NULL)
         return (-1);
 
-    pdx = TO_PDX(pix->pose.p.x, pix->pose.p.y);
+    pdx = TO_PDX(pose.p.x, pose.p.y);
     if (!queue_append(&pqueues[pdx], node)) {
         return (0);
     }
 
     // Queue head has changed.
     const Pixel *head_pix = pqueues[pdx].head->val;
-    return (write_point(head_pix->buf, PIXELLEN, head_pix->pose.p));
+    return (write_point(head_pix->buf, PIXELLEN, pose.p));
 }
 
 /* Remove a pixel from the buffer.*/
 int
-remove_pixel(const Pixel *pix)
+remove_pixel(const Pixel *pix, const Pose3D pose)
 {
     int pdx;
     PNode *node;
 
-    if (check_bounds(pix->pose.p, WINSIZE))
+    if (check_bounds(pose.p, WINSIZE))
         return (-1);
 
-    if ((node = create_node(pix, pix->pose.z)) == NULL)
+    if ((node = create_node(pix, pose.z)) == NULL)
         return (-1);
 
-    pdx = TO_PDX(pix->pose.p.x, pix->pose.p.y);
+    pdx = TO_PDX(pose.p.x, pose.p.y);
     if(!queue_remove(&pqueues[pdx], *node)) {
         free(node);
         return (0);
@@ -159,7 +159,7 @@ remove_pixel(const Pixel *pix)
 
     // Queue head has changed.
     const Pixel *head_pix = pqueues[pdx].head->val;
-    return (write_point(head_pix->buf, PIXELLEN, pix->pose.p));
+    return (write_point(head_pix->buf, PIXELLEN, pose.p));
 }
 
 /* Retrieve the pixel from the buffer. */
