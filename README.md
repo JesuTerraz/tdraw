@@ -32,14 +32,16 @@ make run
 
 ## Project Layout
 
-- `include/`: public headers (`draw.h`, `model.h`, `tdlib.h`, etc.)
+- `include/`: public headers
+- `src/codes.c`: terminal/ANSI and tty helpers
 - `src/draw.c`: screen buffer and pixel queue rendering
-- `src/codes.c`: terminal/ANSI and tty helpers (`scrsize`, cursor helpers)
-- `src/model.c`: model creation and movement application
-- `src/queue.c`: priority queue helpers used by draw path
-- `src/tdraw.c`: threaded runtime (`draw` thread + writer threads)
-- `src/tdlib.c`: thin library facade (`init`, `shutdown`, etc.)
-- `tests/demo.c`: demo client and main entry point
+- `src/ipc.c`: Uses IPC to send a valid terminal for logging
+- `src/logger.c`: logging used by tdraw
+- `src/pose.c`: vector definitions
+- `src/queue.c`: queue helpers
+- `src/tdlib.c`: thin library facade
+- `src/tdraw.c`: threaded runtime
+- `tests/`: demo clients for testing tdraw
 
 ## Terminal Recovery
 

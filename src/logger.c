@@ -20,7 +20,7 @@ struct mesg_buffer {
 
 static Logger *logger;
 
-int
+static int
 retrieve_tty()
 {
     key_t key;

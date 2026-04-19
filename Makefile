@@ -5,6 +5,8 @@ TEST = tests/demo
 
 ALL = $(TEST) tdlib.a
 
+IPC_SRC = src/ipc.c
+
 TDLIB_SRCS = src/tdlib.c src/tdraw.c src/draw.c src/codes.c src/input.c src/pose.c src/queue.c src/logger.c
 TDLIB_OBJS = $(addprefix build/,$(notdir $(TDLIB_SRCS:.c=.o)))
 
@@ -28,6 +30,9 @@ $(TARGET): $(TDLIB_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(TDLIB_OBJS)
 
 $(TEST): tdlib.a
+
+ipc: $(IPC_SRC)
+	$(CC) $(CFLAGS) -o $@ $<
 
 build/%.o: src/%.c
 	mkdir -p build
