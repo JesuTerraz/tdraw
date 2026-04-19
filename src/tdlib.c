@@ -1,11 +1,20 @@
 #include "tdlib.h"
 
+#include "logger.h"
+
 #include <stdlib.h>
 
 int 
 init()
 {
+    if (init_logger())
+    {
+        printf("Could not init logger\n");
+        return (-1);
+    }
+
     start_tdraw();
+
     return (0);
 }
 

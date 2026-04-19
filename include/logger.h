@@ -13,18 +13,15 @@ typedef enum {
 typedef struct logger {
     FILE *file;
     LoggerLevel level;
-    char *logpath;
 } Logger;
 
 
 
-Logger *init_logger(char *module);
-int close_logger(Logger *logger);
-int set_level(Logger *logger, LoggerLevel level);
+int init_logger();
 
-void debug(Logger *logger, char *buf);
-void info(Logger *logger, char *buf);
-void warn(Logger *logger, char *buf);
-void error(Logger *logger, char *buf);
+void debug(char *buf);
+void info(char *buf);
+void warn(char *buf);
+void error(char *buf);
 
 #endif
