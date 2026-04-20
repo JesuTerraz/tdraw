@@ -15,13 +15,11 @@ typedef struct logger {
     LoggerLevel level;
 } Logger;
 
-
-
 int init_logger();
 
-void debug(char *buf);
-void info(char *buf);
-void warn(char *buf);
-void error(char *buf);
+void debug(char *format, ...);
+void info(char *format, ...);
+void warn(char *format, ...);
+void error(char *format, ...);
 
 #endif

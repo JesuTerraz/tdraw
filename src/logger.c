@@ -7,6 +7,8 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
+#include <stdarg.h>
+
 #define PATH_MAX    100
 #define TTY_MAX     100
 
@@ -105,9 +107,9 @@ init_logger()
 }
 
 void
-flog(char *buf, int buflen, LoggerLevel level)
+flog(LoggerLevel level, char *format, va_list args)
 {
-    if (!buf || !buflen)
+    if (!format)
         return;
 
     if (!logger)
@@ -119,76 +121,96 @@ flog(char *buf, int buflen, LoggerLevel level)
     if (!logger->file)
         return;
 
-    fprintf(logger->file, "%s", buf);
+    vfprintf(logger->file, format, args);
+    // fflush(logger->file);
 }
 
 void
-debug(char *buf)
+debug(char *format, ...)
 {
+    va_list arg;
+
     int DEBUG_LEN = 9;
-    if (!buf) {
+
+    if (!format) {
         return;
     }
 
-    int message_len = strlen(buf) + DEBUG_LEN;
+    int message_len = strlen(format) + DEBUG_LEN;
     char *message = malloc(message_len);
-    snprintf(message, message_len, "DEBUG: %s\n", buf);
+    snprintf(message, message_len, "DEBUG: %s\n", format);
 
-    flog(message, message_len, LOG_DEBUG);
+    va_start(arg, format);
+    flog(LOG_DEBUG, message, arg);
+    va_end(arg);
 
     free(message);
     return;
 }
 
 void
-info(char *buf)
+info(char *format, ...)
 {
+    va_list arg;
+
     int INFO_LEN = 8;
-    if (!buf) {
+
+    if (!format) {
         return;
     }
 
-    int message_len = strlen(buf) + INFO_LEN;
+    int message_len = strlen(format) + INFO_LEN;
     char *message = malloc(message_len);
-    snprintf(message, message_len, "INFO: %s\n", buf);
+    snprintf(message, message_len, "INFO: %s\n", format);
 
-    flog(message, message_len, LOG_INFO);
+    va_start(arg, format);
+    flog(LOG_INFO, message, arg);
+    va_end(arg);
 
     free(message);
     return;
 }
 
 void
-warn(char *buf)
+warn(char *format, ...)
 {
+    va_list arg;
+
     int WARN_LEN = 8;
-    if (!buf) {
+    if (!format) {
         return;
     }
 
-    int message_len = strlen(buf) + WARN_LEN;
+    int message_len = strlen(format) + WARN_LEN;
     char *message = malloc(message_len);
-    snprintf(message, message_len, "WARN: %s\n", buf);
+    snprintf(message, message_len, "WARN: %s\n", format);
 
-    flog(message, message_len, LOG_WARN);
+    va_start(arg, format);
+    flog(LOG_WARN, message, arg);
+    va_end(arg);
 
     free(message);
     return;
 }
 
 void
-error(char *buf)
+error(char *format, ...)
 {
+    va_list arg;
+
     int ERROR_LEN = 9;
-    if (!buf) {
+
+    if (!format) {
         return;
     }
 
-    int message_len = strlen(buf) + ERROR_LEN;
+    int message_len = strlen(format) + ERROR_LEN;
     char *message = malloc(message_len);
-    snprintf(message, message_len, "ERROR: %s\n", buf);
+    snprintf(message, message_len, "ERROR: %s\n", format);
 
-    flog(message, message_len, LOG_WARN);
+    va_start(arg, format);
+    flog(LOG_ERROR, message, arg);
+    va_end(arg);
 
     free(message);
     return;
