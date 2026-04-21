@@ -12,6 +12,7 @@
 #define MAX_FPS             (60)
 
 #define CALCULATE_PIXEL_OPS (1)
+#define REPORT_FPS          (0)
 
 // Let each thread know it's ID
 struct thread_input {
@@ -249,28 +250,30 @@ draw_routine(void *arg)
             + ((end.tv_nsec - start.tv_nsec)  / 1000000000.0);
 
         // Increment number of frames & calculate FPS.
-        frames++;
-        avg_delta += delta;
-        elapsed_time = (end.tv_sec - last_fps.tv_sec)
-            + ((end.tv_nsec - last_fps.tv_nsec) / 1000000000.0);
-
-        if (elapsed_time >= 1.0)
+        if (REPORT_FPS)
         {
-            fps = frames / elapsed_time;
-            avg_delta = avg_delta / frames;
+            frames++;
+            avg_delta += delta;
+            elapsed_time = (end.tv_sec - last_fps.tv_sec)
+                + ((end.tv_nsec - last_fps.tv_nsec) / 1000000000.0);
 
-            info("FPS: %.6f", fps);
-            debug("\ttotal frames: %d", frames);
-            debug("\tavg_delta: %.6f", avg_delta);
-            debug("\ttotal_operations: %.0f", total_operations);
-            debug("\tavg ops / frame: %.3f", ((total_operations / frames)));
-            debug("\tavg ops / thread: %.3f", ((total_operations / MAXTHREADS)));
+            if (elapsed_time >= 1.0)
+            {
+                fps = frames / elapsed_time;
+                avg_delta = avg_delta / frames;
 
-            frames = 0;
-            avg_delta = 0.0;
-            total_operations = 0.0;
+                info("FPS: %.6f (MAX %d)", fps, MAX_FPS);
+                debug("\tavg delta / frame: %.6f", avg_delta);
+                debug("\ttotal ops: %.0f", total_operations);
+                debug("\tavg ops / frame: %.3f", ((total_operations / frames)));
+                debug("\tavg ops / thread: %.3f", ((total_operations / MAXTHREADS)));
 
-            clock_gettime(CLOCK_MONOTONIC, &last_fps);
+                frames = 0;
+                avg_delta = 0.0;
+                total_operations = 0.0;
+
+                clock_gettime(CLOCK_MONOTONIC, &last_fps);
+            }
         }
 
         // Check if we are going too fast...
