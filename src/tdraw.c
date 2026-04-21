@@ -1,16 +1,22 @@
 #include "tdraw.h"
 
 #include "queue.h"
+#include "logger.h"
 
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
-#define MAXTHREADS          2
+#define MAXTHREADS          (4)
+#define MAX_FPS             (60)
+
+#define CALCULATE_PIXEL_OPS (1)
 
 // Let each thread know it's ID
 struct thread_input {
     int tid;
+    int pixel_ops;              // Num pixel operations (use semaphore)
 };
 
 typedef struct write_semaphore {
@@ -137,6 +143,8 @@ write_routine(void *arg)
                 break;
         }
 
+        input->pixel_ops++;
+
         // Exit Routine
         write_exit();
 
@@ -176,14 +184,45 @@ draw_exit(void)
 }
 
 /*
+ * Calculate the number of operations performed by workers.
+ *
+ * Requires draw_entry().
+*/
+int
+calculate_pixel_operations()
+{
+    int i;
+    int num_operations = 0;
+
+    for (i = 0; i < MAXTHREADS; i++)
+    {
+        num_operations += inputs[i].pixel_ops;
+        inputs[i].pixel_ops = 0;
+    }
+
+    return (num_operations);
+}
+
+/*
  * Lock the buffer and draw all contents to screen.
 */
 void *
 draw_routine(void *arg)
 {
     (void)arg;
+    struct timespec end, start;
+    double delta = 0.0, elapsed_time = 0.0, avg_delta = 0.0;
+    double fps = 0.0, time_left = 0.0;
+    double num_operations = 0.0, total_operations = 0.0;
+    int frames = 0;
+    double max_time_per_frame = 1.0 / MAX_FPS; // In seconds...
+
+    struct timespec last_fps;
 
     pthread_detach(pthread_self());
+
+    clock_gettime(CLOCK_MONOTONIC, &last_fps);
+    set_level(LOG_DEBUG);
 
     while(1)
     {
@@ -191,12 +230,56 @@ draw_routine(void *arg)
         draw_entry();
 
         // Actual Routine.
+        clock_gettime(CLOCK_MONOTONIC, &start);
         draw();
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        // I think this will get compiled out if set to 0.
+        if (CALCULATE_PIXEL_OPS)
+        {
+            num_operations = (double) calculate_pixel_operations();
+            total_operations += num_operations;
+        }
 
         // Exit Routine.
         draw_exit();
 
-        usleep(100000);
+        // Calculate how long the draw took.
+        delta = (end.tv_sec - start.tv_sec)
+            + ((end.tv_nsec - start.tv_nsec)  / 1000000000.0);
+
+        // Increment number of frames & calculate FPS.
+        frames++;
+        avg_delta += delta;
+        elapsed_time = (end.tv_sec - last_fps.tv_sec)
+            + ((end.tv_nsec - last_fps.tv_nsec) / 1000000000.0);
+
+        if (elapsed_time >= 1.0)
+        {
+            fps = frames / elapsed_time;
+            avg_delta = avg_delta / frames;
+
+            info("FPS: %.6f", fps);
+            debug("\ttotal frames: %d", frames);
+            debug("\tavg_delta: %.6f", avg_delta);
+            debug("\ttotal_operations: %.0f", total_operations);
+            debug("\tavg ops / frame: %.3f", ((total_operations / frames)));
+            debug("\tavg ops / thread: %.3f", ((total_operations / MAXTHREADS)));
+
+            frames = 0;
+            avg_delta = 0.0;
+            total_operations = 0.0;
+
+            clock_gettime(CLOCK_MONOTONIC, &last_fps);
+        }
+
+        // Check if we are going too fast...
+        time_left = max_time_per_frame - delta;
+        if (time_left > 0) 
+        {
+            // info("Need to sleep %.6f", time_left);
+            usleep(time_left * 890000);
+        }
     }
 
     return (NULL);
@@ -262,6 +345,7 @@ start_tdraw(void)
     for (i = 0; i < MAXTHREADS; i++)
     {
         inputs[i].tid = i;
+        inputs[i].pixel_ops = 0;
         tqueues[i].len = 0;
         tqueues[i].head = NULL;
         tqueues[i].tail = NULL;

@@ -108,6 +108,13 @@ init_logger()
 }
 
 void
+set_level(LoggerLevel level)
+{
+    logger->level = level;
+    return;
+}
+
+void
 flog(LoggerLevel level, char *format, va_list args)
 {
     if (!format)

@@ -16,6 +16,7 @@ typedef struct logger {
 } Logger;
 
 int init_logger();
+void set_level(LoggerLevel level);
 
 void debug(char *format, ...);
 void info(char *format, ...);
