@@ -13,6 +13,8 @@ init()
         return (-1);
     }
 
+    set_level(LOG_WARN);
+
     start_tdraw();
 
     return (0);

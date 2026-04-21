@@ -11,8 +11,8 @@
 #define MAXTHREADS          (4)
 #define MAX_FPS             (60)
 
-#define CALCULATE_PIXEL_OPS (1)
 #define REPORT_FPS          (0)
+#define CALCULATE_PIXEL_OPS (REPORT_FPS & 0)
 
 // Let each thread know it's ID
 struct thread_input {
@@ -223,7 +223,9 @@ draw_routine(void *arg)
     pthread_detach(pthread_self());
 
     clock_gettime(CLOCK_MONOTONIC, &last_fps);
-    set_level(LOG_DEBUG);
+
+    if (REPORT_FPS)
+        set_level(CALCULATE_PIXEL_OPS ? LOG_DEBUG : LOG_INFO);
 
     while(1)
     {
@@ -249,9 +251,9 @@ draw_routine(void *arg)
         delta = (end.tv_sec - start.tv_sec)
             + ((end.tv_nsec - start.tv_nsec)  / 1000000000.0);
 
-        // Increment number of frames & calculate FPS.
         if (REPORT_FPS)
         {
+            // Increment number of frames & calculate FPS.
             frames++;
             avg_delta += delta;
             elapsed_time = (end.tv_sec - last_fps.tv_sec)
@@ -281,7 +283,7 @@ draw_routine(void *arg)
         if (time_left > 0) 
         {
             // info("Need to sleep %.6f", time_left);
-            usleep(time_left * 890000);
+            usleep(time_left * 890000); // ~.89s
         }
     }
 
