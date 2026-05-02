@@ -360,8 +360,6 @@ start_tdraw(void)
 
     semaphore.drawing = 0;
     semaphore.writers = 0;
-    semaphore.mmap.size = 0;
-    semaphore.mmap.entries = NULL;
     pthread_mutex_init(&semaphore.mtx, NULL);
     pthread_cond_init(&semaphore.write_done, NULL);
     pthread_cond_init(&semaphore.draw_done, NULL);
