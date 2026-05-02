@@ -58,12 +58,10 @@ typedef struct {
     QNode *tail;
 } Queue;
 
-QNode *create_qnode(const void *val);
-
 /*
  * Appends node to queue as tail.
 */
-int queue_push(Queue *queue, QNode *node);
+int queue_push(Queue *queue, void *val);
 
 /*
  * Removes the head of the queue.

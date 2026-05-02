@@ -16,11 +16,6 @@ int init();
 int shutdown();
 
 /*
- * Submit a model to tdraw.
-*/
-int submit_pixel(PixelOp *pop);
-
-/*
  * Draw a model.
 */
 void draw_model(Model *model);

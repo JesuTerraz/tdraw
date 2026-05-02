@@ -11,8 +11,8 @@
 #define MAXTHREADS          (4)
 #define MAX_FPS             (60)
 
-#define REPORT_FPS          (0)
-#define CALCULATE_PIXEL_OPS (REPORT_FPS & 0)
+#define REPORT_FPS          (1)
+#define CALCULATE_PIXEL_OPS (REPORT_FPS & 1)
 
 // Let each thread know it's ID
 struct thread_input {
@@ -96,61 +96,59 @@ write_routine(void *arg)
 {
     // Pixel *pix;
     PixelOp *pop;
+    ModelOp *mop;
     int tid;
     struct thread_input *input = (struct thread_input *) arg;
     tid = input->tid;
 
     while(1)
     {
-        // Retrieve pixel from queue.
+        /* 
+         * Retrieve pixel from queue.
+        */
         pthread_mutex_lock(&queue_mutex[tid]);
 
         // Queue empty, need to wait for something to fill.
         while (!tqueues[tid].len)
-        {
             pthread_cond_wait(&queue_notempty[tid], &queue_mutex[tid]);
-        }
 
-        pop = queue_pop(&tqueues[tid]);
+        mop = queue_pop(&tqueues[tid]);
         pthread_mutex_unlock(&queue_mutex[tid]);
 
-        if (!pop || !pop->pixel)
+        if (!mop || !mop->pops.len)
             continue;
 
         // Entry Routine.
         write_entry();
 
         // Actual Routine.
-        switch (pop->op)
+        while (mop->pops.len)
         {
-            case SET:
-                set_pixel(pop->pixel, pop->opts.pose);
-                break;
-            case REMOVE:
-                remove_pixel(pop->pixel, pop->opts.pose);
-                break;
-            case MOVE:
-                // This shouldn't happen anymore...
-                // /* Erase where the pixel was. */
-                // remove_pixel(pop->pixel);
+            pop = queue_pop(&mop->pops);
 
-                // Pose t = add_pose(pop->pixel->pose.p, pop->opts.offset);
-                // pop->pixel->pose.p = t;
+            switch (pop->op)
+            {
+                case SET:
+                    set_pixel(pop->pixel, pop->opts.pose);
+                    break;
+                case REMOVE:
+                    remove_pixel(pop->pixel, pop->opts.pose);
+                    break;
+                case MOVE:
+                    // This shouldn't happen...
+                    break;
+                default:
+                    break;
+            }
 
-                // /* Fill where pixel is now*/
-                // set_pixel(pop->pixel);
-                break;
-            default:
-                break;
+            input->pixel_ops++;
+            free(pop);
         }
-
-        input->pixel_ops++;
 
         // Exit Routine
         write_exit();
 
-        // Free the PixelOperation.
-        free(pop);
+        free(mop);
     }
 
     return (NULL);
@@ -163,11 +161,9 @@ draw_entry(void)
     pthread_mutex_lock(&semaphore.mtx);
     semaphore.drawing = 1;
 
-    // Wait til writers are done.
+    // Wait til writers and models are done.
     while (semaphore.writers)
-    {
         pthread_cond_wait(&semaphore.write_done, &semaphore.mtx);
-    }
 
     pthread_mutex_unlock(&semaphore.mtx);
 }
@@ -295,37 +291,62 @@ draw_routine(void *arg)
  * queue.
 */
 void *
-balance_routine(PixelOp *pop)
+balance_routine(Model *model, OperationType op)
 {
     // Entry Routine.
-    QNode *node;
+    PixelOp *pop;
+    // MNode *model_id;
+    Pixel *pix;
+    ModelOp *mops[MAXTHREADS];
+
     int rc, tdx;
+    int i;
 
     (void)rc;
 
-    if (!pop || !pop->pixel)
+    if (!model || !model->len)
         return (NULL);
 
-    if (check_bounds(pop->opts.pose.p, WINSIZE))
-    {
+    if (check_bounds(model->p.p, WINSIZE))
         return (NULL);
+
+    for (tdx = 0; tdx < MAXTHREADS; tdx++)
+    {
+        mops[tdx] = malloc(sizeof(ModelOp));
     }
 
-    // The screen is divided horizontally.
-    tdx = to_tdx(pop->opts.pose.p);
-    node = create_qnode(pop);
+    // Separate each pop into its mop.
+    for (i = 0; i < model->len; i++)
+    {
+        pop = malloc(sizeof(PixelOp));
+        if (!pop)
+            return (NULL);
 
-    if (!node)
-        return (NULL);
+        pix = model->pixels[i];
+        
+        pop->opts.pose = add_pose3d(model->p, pix->pose);
+        pop->pixel = pix;
+        pop->op = op;
 
-    // Ideally a try lock here...
-    pthread_mutex_lock(&queue_mutex[tdx]);
-    queue_push(&tqueues[tdx], node);
+        tdx = to_tdx(pop->opts.pose.p);
 
-    if (tqueues[tdx].len == 1)
-        pthread_cond_signal(&queue_notempty[tdx]);
+        queue_push(&mops[tdx]->pops, pop);
+    }
 
-    pthread_mutex_unlock(&queue_mutex[tdx]);
+    // Delegate
+    for (tdx = 0; tdx < MAXTHREADS; tdx++)
+    {
+        if (!mops[tdx]->pops.len)
+            continue;
+
+        pthread_mutex_lock(&queue_mutex[tdx]);
+        queue_push(&tqueues[tdx], mops[tdx]);
+
+        if (tqueues[tdx].len == 1)
+            pthread_cond_signal(&queue_notempty[tdx]);
+
+        pthread_mutex_unlock(&queue_mutex[tdx]);
+    }
 
     return (NULL);
 }
@@ -339,6 +360,8 @@ start_tdraw(void)
 
     semaphore.drawing = 0;
     semaphore.writers = 0;
+    semaphore.mmap.size = 0;
+    semaphore.mmap.entries = NULL;
     pthread_mutex_init(&semaphore.mtx, NULL);
     pthread_cond_init(&semaphore.write_done, NULL);
     pthread_cond_init(&semaphore.draw_done, NULL);
@@ -359,6 +382,6 @@ start_tdraw(void)
         pthread_create(&wtids[i], NULL, write_routine, &inputs[i]);
     }
 
-    // pthread_create(&btid, NULL, balance_routine, NULL);
+    set_level(LOG_INFO);
 
 }

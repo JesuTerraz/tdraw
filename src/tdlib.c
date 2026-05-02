@@ -27,68 +27,22 @@ shutdown()
     return (0);
 }
 
-int
-submit_pixel(PixelOp *pop)
-{
-    if (!pop)
-        return (-1);
-
-    if (!pop->pixel)
-        return (0);
-
-    balance_routine(pop);
-
-    return (0);
-}
-
 void
 draw_model(Model *model)
 {
-    int i;
-    PixelOp *op;
-
     if (!model)
         return;
 
-    for (i = 0; i < model->len; i++)
-    {
-        if (!model->pixels[i])
-            continue;
-
-        op = malloc(sizeof(PixelOp));
-        op->op = SET;
-        op->pixel = model->pixels[i];
-
-        // Define where we want the SET operation to occur.
-        op->opts.pose = add_pose3d(model->p, model->pixels[i]->pose);
-
-        submit_pixel(op);
-    }
+    balance_routine(model, SET);
 }
 
 void
 remove_model(Model *model)
 {
-    int i;
-    PixelOp *op;
-
     if (!model)
         return;
 
-    for (i = 0; i < model->len; i++)
-    {
-        if (!model->pixels[i])
-            continue;
-
-        op = malloc(sizeof(PixelOp));
-        op->op = REMOVE;
-        op->pixel = model->pixels[i];
-
-        // Define where we want the REMOVE operation to occur.
-        op->opts.pose = add_pose3d(model->p, model->pixels[i]->pose);
-
-        submit_pixel(op);
-    }
+    balance_routine(model, REMOVE);
 }
 
 void

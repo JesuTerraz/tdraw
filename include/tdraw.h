@@ -2,6 +2,8 @@
 #define TDRAW_H
 
 #include "draw.h"
+#include "model.h"
+#include "queue.h"
 
 typedef enum {
     NONE,
@@ -17,12 +19,18 @@ typedef struct {
 
 typedef struct {
     OperationType op;
-    Pixel *pixel;
     OperationOpts opts;
+    Queue pops;
+} ModelOp;
+
+typedef struct {
+    OperationType op;
+    OperationOpts opts;
+    Pixel *pixel;
 } PixelOp;
 
 void start_tdraw();
 
-void *balance_routine(PixelOp *pop);
+void *balance_routine(Model *model, OperationType op);
 
 #endif

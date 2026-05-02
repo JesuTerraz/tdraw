@@ -195,12 +195,16 @@ create_qnode(const void *val)
 }
 
 int
-queue_push(Queue *queue, QNode *node)
+queue_push(Queue *queue, void *val)
 {
-    if (!queue || !node)
-    {
+    QNode *node;
+
+    if (!queue || !val)
         return (-1);
-    }
+
+    node = create_qnode(val);
+    if (!node)
+        return (-1);
 
     // In case queue is empty. Both should be assigned.
     if (!queue->tail || !queue->head)

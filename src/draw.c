@@ -94,14 +94,6 @@ write_point(const char *buf, int buflen, Pose p)
     return (0);
 }
 
-/* Write buf to a row on the terminal.*/
-// static int 
-// write_line(const char *buf, int buflen, int row)
-// {
-//     Pose p = {row, 1};
-//     return write_point(buf, buflen, p);
-// }
-
 /* Public Methods. */
 
 /* 
