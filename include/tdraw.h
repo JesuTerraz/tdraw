@@ -18,6 +18,7 @@ typedef struct {
 } OperationOpts;
 
 typedef struct {
+    void *id;
     OperationType op;
     OperationOpts opts;
     Queue pops;

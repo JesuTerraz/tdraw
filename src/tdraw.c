@@ -1,6 +1,7 @@
 #include "tdraw.h"
 
 #include "queue.h"
+#include "map.h"
 #include "logger.h"
 
 #include <pthread.h>
@@ -9,7 +10,7 @@
 #include <time.h>
 
 #define MAXTHREADS          (4)
-#define MAX_FPS             (60)
+#define MAX_FPS             (200)
 
 #define REPORT_FPS          (1)
 #define CALCULATE_PIXEL_OPS (REPORT_FPS & 1)
@@ -31,7 +32,6 @@ typedef struct write_semaphore {
 static WSemaphore semaphore;
 
 static pthread_t dtid;                  // Drawing thread.
-// static pthread_t btid;               // Balancing thread.
 static pthread_t wtids[MAXTHREADS];     // Writing threads.
 static struct thread_input inputs[MAXTHREADS];
 
@@ -43,6 +43,11 @@ static struct thread_input inputs[MAXTHREADS];
 static Queue tqueues[MAXTHREADS];
 static pthread_cond_t queue_notempty[MAXTHREADS];
 static pthread_mutex_t queue_mutex[MAXTHREADS];
+
+/*
+ * Define mapping for models that will be added / removed.
+*/
+static CMap mmap;
 
 static int
 to_tdx(Pose p)
@@ -98,6 +103,7 @@ write_routine(void *arg)
     PixelOp *pop;
     ModelOp *mop;
     int tid;
+
     struct thread_input *input = (struct thread_input *) arg;
     tid = input->tid;
 
@@ -144,6 +150,8 @@ write_routine(void *arg)
             input->pixel_ops++;
             free(pop);
         }
+
+        update_node(&mmap, (CMNode *) mop->id, -1);
 
         // Exit Routine
         write_exit();
@@ -295,11 +303,11 @@ balance_routine(Model *model, OperationType op)
 {
     // Entry Routine.
     PixelOp *pop;
-    // MNode *model_id;
+    void *mid;
     Pixel *pix;
     ModelOp *mops[MAXTHREADS];
 
-    int rc, tdx;
+    int rc, tdx, nthreads;
     int i;
 
     (void)rc;
@@ -333,11 +341,25 @@ balance_routine(Model *model, OperationType op)
         queue_push(&mops[tdx]->pops, pop);
     }
 
+    // Add to mapping.
+    nthreads = 0;
+    for (tdx = 0; tdx < MAXTHREADS; tdx++)
+    {
+        if (!mops[tdx]->pops.len)
+            continue;
+
+        nthreads++;
+    }
+
+    mid = add_node(&mmap, model, nthreads);
+
     // Delegate
     for (tdx = 0; tdx < MAXTHREADS; tdx++)
     {
         if (!mops[tdx]->pops.len)
             continue;
+
+        mops[tdx]->id = mid;
 
         pthread_mutex_lock(&queue_mutex[tdx]);
         queue_push(&tqueues[tdx], mops[tdx]);
@@ -363,6 +385,8 @@ start_tdraw(void)
     pthread_mutex_init(&semaphore.mtx, NULL);
     pthread_cond_init(&semaphore.write_done, NULL);
     pthread_cond_init(&semaphore.draw_done, NULL);
+
+    pthread_mutex_init(&mmap.mtx, NULL);
 
     // Only one drawing thread:
     pthread_create(&dtid, NULL, draw_routine, NULL);
