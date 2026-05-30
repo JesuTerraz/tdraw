@@ -44,11 +44,6 @@ static Queue tqueues[MAXTHREADS];
 static pthread_cond_t queue_notempty[MAXTHREADS];
 static pthread_mutex_t queue_mutex[MAXTHREADS];
 
-/*
- * Define mapping for models that will be added / removed.
-*/
-static CMap mmap;
-
 static int
 to_tdx(Pose p)
 {
@@ -150,8 +145,6 @@ write_routine(void *arg)
             input->pixel_ops++;
             free(pop);
         }
-
-        update_node(&mmap, (CMNode *) mop->id, -1);
 
         // Exit Routine
         write_exit();
@@ -303,11 +296,10 @@ balance_routine(Model *model, OperationType op)
 {
     // Entry Routine.
     PixelOp *pop;
-    void *mid;
     Pixel *pix;
     ModelOp *mops[MAXTHREADS];
 
-    int rc, tdx, nthreads;
+    int rc, tdx;
     int i;
 
     (void)rc;
@@ -341,25 +333,11 @@ balance_routine(Model *model, OperationType op)
         queue_push(&mops[tdx]->pops, pop);
     }
 
-    // Add to mapping.
-    nthreads = 0;
-    for (tdx = 0; tdx < MAXTHREADS; tdx++)
-    {
-        if (!mops[tdx]->pops.len)
-            continue;
-
-        nthreads++;
-    }
-
-    mid = add_node(&mmap, model, nthreads);
-
     // Delegate
     for (tdx = 0; tdx < MAXTHREADS; tdx++)
     {
         if (!mops[tdx]->pops.len)
             continue;
-
-        mops[tdx]->id = mid;
 
         pthread_mutex_lock(&queue_mutex[tdx]);
         queue_push(&tqueues[tdx], mops[tdx]);
@@ -378,6 +356,9 @@ start_tdraw(void)
 {
     int i;
 
+    set_level(LOG_DEBUG);
+    debug("Starting tdraw");
+
     init_scr(0);
 
     semaphore.drawing = 0;
@@ -385,8 +366,6 @@ start_tdraw(void)
     pthread_mutex_init(&semaphore.mtx, NULL);
     pthread_cond_init(&semaphore.write_done, NULL);
     pthread_cond_init(&semaphore.draw_done, NULL);
-
-    pthread_mutex_init(&mmap.mtx, NULL);
 
     // Only one drawing thread:
     pthread_create(&dtid, NULL, draw_routine, NULL);
@@ -403,7 +382,4 @@ start_tdraw(void)
         pthread_cond_init(&queue_notempty[i], NULL);
         pthread_create(&wtids[i], NULL, write_routine, &inputs[i]);
     }
-
-    set_level(LOG_INFO);
-
 }
