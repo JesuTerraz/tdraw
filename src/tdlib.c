@@ -25,6 +25,12 @@ shutdown()
     return (0);
 }
 
+double
+draw_frame()
+{
+    return start_draw_routine();
+}
+
 void
 draw_model(Model *model)
 {

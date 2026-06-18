@@ -32,6 +32,8 @@ typedef struct {
 
 void start_tdraw();
 
+double start_draw_routine();
+
 void *balance_routine(Model *model, OperationType op);
 
 #endif

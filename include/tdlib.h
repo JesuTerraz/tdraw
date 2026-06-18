@@ -16,6 +16,11 @@ int init();
 int shutdown();
 
 /*
+ * Explicit draw times.
+*/
+double draw_frame();
+
+/*
  * Draw a model.
 */
 void draw_model(Model *model);

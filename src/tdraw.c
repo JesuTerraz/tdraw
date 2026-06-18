@@ -12,7 +12,7 @@
 #define MAXTHREADS          (4)
 #define MAX_FPS             (200)
 
-#define REPORT_FPS          (1)
+#define REPORT_FPS          (0)
 #define CALCULATE_PIXEL_OPS (REPORT_FPS & 1)
 
 // Let each thread know it's ID
@@ -43,6 +43,18 @@ static struct thread_input inputs[MAXTHREADS];
 static Queue tqueues[MAXTHREADS];
 static pthread_cond_t queue_notempty[MAXTHREADS];
 static pthread_mutex_t queue_mutex[MAXTHREADS];
+
+/*
+ * Static drawing
+ *
+ * Only draw when user requests.
+ * Otherwise draw thread will draw at approx MAX_FPS
+*/
+static int static_draw;                         // Flag
+static double user_delta;                       // Delta perceived by user.
+static struct timespec user_last_req;           // Time of users last request.
+static pthread_mutex_t user_mtx;                // Sync user with draw.
+static pthread_cond_t user_request;             // Used to sync draw on user request.
 
 static int
 to_tdx(Pose p)
@@ -158,11 +170,15 @@ write_routine(void *arg)
 void
 draw_entry(void)
 {
+    // Only draw if user requets.
+    if (static_draw)
+        pthread_cond_wait(&user_request, NULL);
+
     // No writer should start
     pthread_mutex_lock(&semaphore.mtx);
     semaphore.drawing = 1;
 
-    // Wait til writers and models are done.
+    // Wait til writers are done.
     while (semaphore.writers)
         pthread_cond_wait(&semaphore.write_done, &semaphore.mtx);
 
@@ -179,6 +195,10 @@ draw_exit(void)
 
     // Wake up any sleeping writers.
     pthread_cond_broadcast(&semaphore.draw_done);
+
+    // User will be waiting on draw to complete.
+    if (static_draw)
+        pthread_cond_broadcast(&user_request);
 }
 
 /*
